@@ -1,0 +1,407 @@
+---
+title: 'Ranking Endpoints'
+description: 'API endpoints for retrieving Premier League standings and table data'
+---
+
+## Overview
+
+The Ranking endpoints provide access to Premier League standings with comprehensive team statistics. Data can be retrieved in JSON format or exported as CSV, JSON, or PDF files.
+
+## Get League Standings
+
+<CodeGroup>
+```bash GET /ranking
+curl "http://localhost:5000/ranking?season=2023-2024&league=Premier%20League"
+```
+</CodeGroup>
+
+Retrieve detailed league standings with comprehensive team statistics.
+
+### Query Parameters
+
+<ParamField query="season" type="string" optional>
+  Filter results by season. Format: `YYYY-YYYY` (e.g., `2023-2024`)
+  
+  Defaults to current season if not specified.
+</ParamField>
+
+<ParamField query="header" type="string" optional>
+  Include additional metadata in the response.
+  
+  When provided, wraps the standings data under this key.
+</ParamField>
+
+<ParamField query="league" type="string" optional default="Premier League">
+  Filter results by league name.
+  
+  Supported values: `Premier League`, `La Liga`, `Serie A`, `Ligue 1`, `Bundesliga`
+</ParamField>
+
+### Response
+
+<ResponseField name="response" type="object">
+  League standings with detailed team statistics
+  
+  <Expandable title="Team Object">
+    <ResponseField name="Pos" type="string">
+      Current position in the table
+    </ResponseField>
+    
+    <ResponseField name="Team" type="string">
+      Team name
+    </ResponseField>
+    
+    <ResponseField name="Pld" type="string">
+      Matches played
+    </ResponseField>
+    
+    <ResponseField name="W" type="string">
+      Matches won
+    </ResponseField>
+    
+    <ResponseField name="D" type="string">
+      Matches drawn
+    </ResponseField>
+    
+    <ResponseField name="L" type="string">
+      Matches lost
+    </ResponseField>
+    
+    <ResponseField name="GF" type="string">
+      Goals for (scored)
+    </ResponseField>
+    
+    <ResponseField name="GA" type="string">
+      Goals against (conceded)
+    </ResponseField>
+    
+    <ResponseField name="GD" type="string">
+      Goal difference
+    </ResponseField>
+    
+    <ResponseField name="Pts" type="string">
+      Total points
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+```json 200 Success
+{
+  "2023-2024 Premier League Standings": [
+    {
+      "Pos": "1",
+      "Team": "Liverpool",
+      "Pld": "38",
+      "W": "28",
+      "D": "8",
+      "L": "2",
+      "GF": "86",
+      "GA": "41",
+      "GD": "+45",
+      "Pts": "92"
+    },
+    {
+      "Pos": "2",
+      "Team": "Manchester City",
+      "Pld": "38",
+      "W": "27",
+      "D": "7",
+      "L": "4",
+      "GF": "96",
+      "GA": "34",
+      "GD": "+62",
+      "Pts": "88"
+    },
+    {
+      "Pos": "3",
+      "Team": "Arsenal",
+      "Pld": "38",
+      "W": "26",
+      "D": "6",
+      "L": "6",
+      "GF": "91",
+      "GA": "29",
+      "GD": "+62",
+      "Pts": "84"
+    }
+  ]
+}
+```
+
+```json 400 Invalid Season
+{
+  "error": "Season format must be YYYY-YYYY"
+}
+```
+</ResponseExample>
+
+---
+
+## Get Simplified Standings Table
+
+<CodeGroup>
+```bash GET /ranking/table
+curl "http://localhost:5000/ranking/table?season=2023-2024&league=Premier%20League"
+```
+</CodeGroup>
+
+Retrieve a streamlined version of the league table focused on essential statistics.
+
+### Query Parameters
+
+<ParamField query="season" type="string" optional>
+  Filter results by season. Format: `YYYY-YYYY` (e.g., `2023-2024`)
+  
+  Defaults to current season if not specified.
+</ParamField>
+
+<ParamField query="league" type="string" optional default="Premier League">
+  Filter results by league name.
+  
+  Supported values: `Premier League`, `La Liga`, `Serie A`, `Ligue 1`, `Bundesliga`
+</ParamField>
+
+### Response
+
+<ResponseField name="response" type="array">
+  Array of team standings with basic statistics
+  
+  <Expandable title="Team Object">
+    <ResponseField name="Pos" type="string">
+      Current position in the table
+    </ResponseField>
+    
+    <ResponseField name="Team" type="string">
+      Team name
+    </ResponseField>
+    
+    <ResponseField name="Pld" type="string">
+      Matches played
+    </ResponseField>
+    
+    <ResponseField name="W" type="string">
+      Matches won
+    </ResponseField>
+    
+    <ResponseField name="D" type="string">
+      Matches drawn
+    </ResponseField>
+    
+    <ResponseField name="L" type="string">
+      Matches lost
+    </ResponseField>
+    
+    <ResponseField name="GF" type="string">
+      Goals for
+    </ResponseField>
+    
+    <ResponseField name="GA" type="string">
+      Goals against
+    </ResponseField>
+    
+    <ResponseField name="GD" type="string">
+      Goal difference
+    </ResponseField>
+    
+    <ResponseField name="Pts" type="string">
+      Total points
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+```json 200 Success
+[
+  {
+    "Pos": "1",
+    "Team": "Liverpool",
+    "Pld": "38",
+    "W": "28",
+    "D": "8",
+    "L": "2",
+    "GF": "86",
+    "GA": "41",
+    "GD": "+45",
+    "Pts": "92"
+  },
+  {
+    "Pos": "2",
+    "Team": "Manchester City",
+    "Pld": "38",
+    "W": "27",
+    "D": "7",
+    "L": "4",
+    "GF": "96",
+    "GA": "34",
+    "GD": "+62",
+    "Pts": "88"
+  }
+]
+```
+
+```json 400 Invalid Season
+{
+  "error": "Season format must be YYYY-YYYY"
+}
+```
+</ResponseExample>
+
+---
+
+## Export Standings to CSV
+
+<CodeGroup>
+```bash GET /ranking/csv_file
+curl "http://localhost:5000/ranking/csv_file?filename=standings&season=2023-2024&league=Premier%20League" \
+  -o standings.csv
+```
+</CodeGroup>
+
+Export league standings to a CSV file.
+
+### Query Parameters
+
+<ParamField query="filename" type="string" required>
+  Name for the exported file (without extension).
+  
+  The filename will be sanitized for security. Special characters and path separators will be removed.
+</ParamField>
+
+<ParamField query="season" type="string" optional>
+  Filter results by season. Format: `YYYY-YYYY` (e.g., `2023-2024`)
+</ParamField>
+
+<ParamField query="league" type="string" optional default="Premier League">
+  Filter results by league name.
+</ParamField>
+
+### Response
+
+<ResponseField name="file" type="file">
+  CSV file download with `text/csv` MIME type.
+  
+  The file contains the complete league table with columns: Pos, Team, Pld, W, D, L, GF, GA, GD, Pts
+</ResponseField>
+
+### Error Responses
+
+<ResponseExample>
+```json 400 Missing Filename
+{
+  "error": "Missing filename parameter"
+}
+```
+
+```json 400 Invalid Season
+{
+  "error": "Season format must be YYYY-YYYY"
+}
+```
+</ResponseExample>
+
+---
+
+## Export Standings to JSON
+
+<CodeGroup>
+```bash GET /ranking/json_file
+curl "http://localhost:5000/ranking/json_file?filename=standings&season=2023-2024&league=Premier%20League" \
+  -o standings.json
+```
+</CodeGroup>
+
+Export league standings to a JSON file.
+
+### Query Parameters
+
+<ParamField query="filename" type="string" required>
+  Name for the exported file (without extension).
+  
+  The filename will be sanitized for security. Special characters and path separators will be removed.
+</ParamField>
+
+<ParamField query="season" type="string" optional>
+  Filter results by season. Format: `YYYY-YYYY` (e.g., `2023-2024`)
+</ParamField>
+
+<ParamField query="league" type="string" optional default="Premier League">
+  Filter results by league name.
+</ParamField>
+
+### Response
+
+<ResponseField name="file" type="file">
+  JSON file download with `application/json` MIME type.
+  
+  The file contains the complete league table with detailed team statistics.
+</ResponseField>
+
+### Error Responses
+
+<ResponseExample>
+```json 400 Missing Filename
+{
+  "error": "Missing filename parameter"
+}
+```
+
+```json 400 Invalid Season
+{
+  "error": "Season format must be YYYY-YYYY"
+}
+```
+</ResponseExample>
+
+---
+
+## Export Standings to PDF
+
+<CodeGroup>
+```bash GET /ranking/pdf_file
+curl "http://localhost:5000/ranking/pdf_file?filename=standings&season=2023-2024&league=Premier%20League" \
+  -o standings.pdf
+```
+</CodeGroup>
+
+Export league standings to a formatted PDF file.
+
+### Query Parameters
+
+<ParamField query="filename" type="string" required>
+  Name for the exported file (without extension).
+  
+  The filename will be sanitized for security. Special characters and path separators will be removed.
+</ParamField>
+
+<ParamField query="season" type="string" optional>
+  Filter results by season. Format: `YYYY-YYYY` (e.g., `2023-2024`)
+</ParamField>
+
+<ParamField query="league" type="string" optional default="Premier League">
+  Filter results by league name.
+</ParamField>
+
+### Response
+
+<ResponseField name="file" type="file">
+  PDF file download with `application/pdf` MIME type.
+  
+  The file contains the complete league table in a formatted, printable layout.
+</ResponseField>
+
+### Error Responses
+
+<ResponseExample>
+```json 400 Missing Filename
+{
+  "error": "Missing filename parameter"
+}
+```
+
+```json 400 Invalid Season
+{
+  "error": "Season format must be YYYY-YYYY"
+}
+```
+</ResponseExample>

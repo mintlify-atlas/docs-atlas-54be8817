@@ -1,0 +1,368 @@
+---
+title: "Local Deployment"
+description: "Deploy the Premier League Flask API locally in development or production mode"
+---
+
+## Overview
+
+The Premier League API can be run locally in two modes: development (using Flask's built-in server) and production (using Gunicorn). This guide covers configuration, environment variables, and deployment options for local environments.
+
+## Installation
+
+First, install the library with API support:
+
+```bash
+pip install premier_league[api]
+```
+
+## Development Mode
+
+Development mode uses Flask's built-in development server with hot-reloading and debugging enabled.
+
+### Basic Usage
+
+```python
+from premier_league import run_server
+
+# Run with default settings (localhost:3000)
+run_server()
+```
+
+### Custom Configuration
+
+```python
+from premier_league import run_server
+
+# Run on custom host and port with debugging
+run_server(
+    host="127.0.0.1",
+    port=8000,
+    debug=True,
+    mode="development"
+)
+```
+
+<Warning>
+Development mode is **not suitable for production**. It lacks performance optimizations, security hardening, and can only handle one request at a time.
+</Warning>
+
+## Production Mode
+
+Production mode uses Gunicorn, a production-grade WSGI HTTP server that handles multiple concurrent requests efficiently.
+
+### Running with Gunicorn
+
+```python
+from premier_league import run_server
+
+run_server(
+    host="0.0.0.0",
+    port=3000,
+    debug=False,
+    mode="production",
+    workers=4
+)
+```
+
+Reference: `premier_league/api/app.py:76-119`
+
+### Gunicorn Configuration
+
+The library uses a custom Gunicorn application with the following default settings:
+
+```python
+options = {
+    "bind": "0.0.0.0:3000",      # Host and port
+    "workers": 4,                  # Number of worker processes
+    "worker_class": "sync",        # Worker type (sync/async)
+    "timeout": 120,                # Request timeout in seconds
+    "preload_app": True,           # Load app before forking workers
+}
+```
+
+**Configuration Parameters:**
+
+- `workers`: Number of worker processes (recommended: 2-4 × CPU cores)
+- `worker_class`: Use `sync` for standard requests, `gevent` for async
+- `timeout`: Maximum time (seconds) a request can take before worker restart
+- `preload_app`: Load application code before forking workers (reduces memory usage)
+
+## Configuration Methods
+
+### 1. Environment Variables
+
+Configure the server using environment variables prefixed with `PREMIER_LEAGUE_`:
+
+```bash
+export PREMIER_LEAGUE_HOST="0.0.0.0"
+export PREMIER_LEAGUE_PORT="8080"
+export PREMIER_LEAGUE_DEBUG="false"
+export PREMIER_LEAGUE_SECRET_KEY="your-secret-key-here"
+export PREMIER_LEAGUE_CORS_ORIGINS="http://localhost:3000,https://example.com"
+export PREMIER_LEAGUE_RATE_LIMIT="200"
+export PREMIER_LEAGUE_CACHE_DEFAULT_TIMEOUT="600"
+export PREMIER_LEAGUE_LOG_LEVEL="WARNING"
+```
+
+Then run the server:
+
+```python
+from premier_league.api.app import create_app, run_server
+
+app, config = create_app()  # Loads from environment
+run_server(mode="production", workers=4)
+```
+
+Reference: `premier_league/api/config/config.py:42-56`
+
+### 2. YAML Configuration
+
+Create a YAML configuration file:
+
+```yaml config.yaml
+HOST: "0.0.0.0"
+PORT: 8080
+DEBUG: false
+SECRET_KEY: "your-secret-key-here"
+CORS_ORIGINS:
+  - "http://localhost:3000"
+  - "https://example.com"
+RATE_LIMIT: 200
+CACHE_TYPE: "simple"
+CACHE_DEFAULT_TIMEOUT: 600
+LOG_LEVEL: "WARNING"
+```
+
+Load the configuration:
+
+```python
+from premier_league import run_server
+
+run_server(
+    config_path="config.yaml",
+    mode="production",
+    workers=4
+)
+```
+
+### 3. Dictionary Configuration
+
+```python
+from premier_league import run_server
+
+config = {
+    "HOST": "0.0.0.0",
+    "PORT": 8080,
+    "DEBUG": False,
+    "SECRET_KEY": "your-secret-key-here",
+    "CORS_ORIGINS": ["http://localhost:3000"],
+    "RATE_LIMIT": 200,
+    "CACHE_DEFAULT_TIMEOUT": 600,
+    "LOG_LEVEL": "WARNING"
+}
+
+run_server(
+    config_dict=config,
+    mode="production",
+    workers=4
+)
+```
+
+## Configuration Reference
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `HOST` | string | `"0.0.0.0"` | Server host address |
+| `PORT` | integer | `3000` | Server port number |
+| `DEBUG` | boolean | `false` | Enable debug mode (development only) |
+| `SECRET_KEY` | string | `"default-secret-key"` | Secret key for sessions (change in production!) |
+| `CORS_ORIGINS` | list | `["*"]` | Allowed CORS origins |
+| `JSON_SORT_KEYS` | boolean | `false` | Sort JSON response keys |
+| `RATE_LIMIT` | integer | `100` | Requests per minute per IP |
+| `CACHE_TYPE` | string | `"simple"` | Cache backend type |
+| `CACHE_DEFAULT_TIMEOUT` | integer | `300` | Cache timeout in seconds |
+| `LOG_LEVEL` | string | `"INFO"` | Logging level (DEBUG, INFO, WARNING, ERROR) |
+
+Reference: `premier_league/api/config/config.py:8-21`
+
+## Server Features
+
+The API server includes the following built-in features:
+
+### CORS (Cross-Origin Resource Sharing)
+
+```python
+from flask_cors import CORS
+
+CORS(app, origins=config.CORS_ORIGINS)
+```
+
+Configure allowed origins via `CORS_ORIGINS` setting.
+
+### Rate Limiting
+
+```python
+from flask_limiter import Limiter
+
+Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=[f"{config.RATE_LIMIT} per minute"]
+)
+```
+
+Protects endpoints from abuse. Adjust via `RATE_LIMIT` setting.
+
+### Response Caching
+
+```python
+from flask_caching import Cache
+
+Cache(app)  # Uses CACHE_TYPE and CACHE_DEFAULT_TIMEOUT
+```
+
+Caches responses to improve performance for repeated requests.
+
+Reference: `premier_league/api/app.py:61-67`
+
+## Complete Deployment Example
+
+<Steps>
+  <Step title="Create configuration file">
+    Create a `production.yaml` file:
+    
+    ```yaml
+    HOST: "0.0.0.0"
+    PORT: 8080
+    DEBUG: false
+    SECRET_KEY: "change-this-in-production"
+    CORS_ORIGINS:
+      - "https://yourapp.com"
+    RATE_LIMIT: 150
+    CACHE_DEFAULT_TIMEOUT: 900
+    LOG_LEVEL: "WARNING"
+    ```
+  </Step>
+
+  <Step title="Create deployment script">
+    Create `run_api.py`:
+    
+    ```python
+    from premier_league import run_server
+
+    if __name__ == "__main__":
+        run_server(
+            config_path="production.yaml",
+            mode="production",
+            workers=4  # Adjust based on CPU cores
+        )
+    ```
+  </Step>
+
+  <Step title="Run the server">
+    Execute the deployment script:
+    
+    ```bash
+    python run_api.py
+    ```
+    
+    The API will be available at `http://0.0.0.0:8080`
+  </Step>
+
+  <Step title="Verify deployment">
+    Test the API endpoints:
+    
+    ```bash
+    # Test players endpoint
+    curl http://localhost:8080/players/goals?limit=5
+    
+    # Test ranking endpoint
+    curl http://localhost:8080/ranking
+    ```
+  </Step>
+</Steps>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Security" icon="shield">
+    - Always set a strong `SECRET_KEY` in production
+    - Restrict `CORS_ORIGINS` to specific domains
+    - Use environment variables for sensitive configuration
+    - Never commit secrets to version control
+    - Run behind a reverse proxy (nginx, Apache) for HTTPS
+  </Accordion>
+
+  <Accordion title="Performance" icon="gauge">
+    - Set workers to 2-4 × CPU cores for CPU-bound tasks
+    - Enable `preload_app` to reduce memory usage
+    - Adjust `CACHE_DEFAULT_TIMEOUT` based on data freshness needs
+    - Increase `RATE_LIMIT` for trusted clients
+    - Monitor memory usage and adjust workers accordingly
+  </Accordion>
+
+  <Accordion title="Monitoring" icon="chart-line">
+    - Set `LOG_LEVEL` to `WARNING` or `ERROR` in production
+    - Use structured logging for better analysis
+    - Monitor response times and error rates
+    - Set up health check endpoints
+    - Track rate limit violations
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Port already in use">
+    **Error:** `Address already in use`
+    
+    **Solution:** Change the port or kill the process using it:
+    
+    ```bash
+    # Find process using port 3000
+    lsof -i :3000
+    
+    # Kill the process
+    kill -9 <PID>
+    
+    # Or use a different port
+    run_server(port=8080)
+    ```
+  </Accordion>
+
+  <Accordion title="Worker timeout errors">
+    **Error:** `Worker timeout`
+    
+    **Solution:** Increase the timeout in Gunicorn configuration:
+    
+    ```python
+    # Increase timeout for slow endpoints
+    run_server(
+        mode="production",
+        workers=4,
+        timeout=180  # 3 minutes
+    )
+    ```
+  </Accordion>
+
+  <Accordion title="CORS errors">
+    **Error:** `CORS policy: No 'Access-Control-Allow-Origin' header`
+    
+    **Solution:** Add your frontend URL to `CORS_ORIGINS`:
+    
+    ```bash
+    export PREMIER_LEAGUE_CORS_ORIGINS="http://localhost:3000,https://myapp.com"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="AWS Lambda Deployment" icon="aws" href="/flask-api/deployment/lambda">
+    Deploy to AWS Lambda for serverless scalability
+  </Card>
+  <Card title="API Endpoints" icon="code" href="/flask-api/endpoints/players">
+    Explore available API endpoints
+  </Card>
+</CardGroup>

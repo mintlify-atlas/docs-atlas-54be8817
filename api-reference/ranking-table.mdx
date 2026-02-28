@@ -1,0 +1,324 @@
+---
+title: 'RankingTable'
+description: 'Scrape and process ranking data for the Top 5 European Leagues'
+---
+
+## Overview
+
+The `RankingTable` class provides methods to retrieve, process, and output ranking data for the Top 5 European Leagues (Premier League, La Liga, Serie A, Ligue 1, Bundesliga) in various formats.
+
+## Constructor
+
+### RankingTable
+
+```python
+RankingTable(
+    league: Optional[str] = "Premier League",
+    target_season: Optional[str] = None,
+    cache: Optional[bool] = True
+)
+```
+
+Initialize the RankingTable instance.
+
+<ParamField path="league" type="str" default="Premier League">
+  The league to scrape data for. Supported leagues:
+  - "Premier League"
+  - "La Liga"
+  - "Serie A"
+  - "Ligue 1"
+  - "Bundesliga"
+</ParamField>
+
+<ParamField path="target_season" type="str" default="None">
+  The specific season to scrape data for (e.g., "2023-2024"). If not provided, the current season is used
+</ParamField>
+
+<ParamField path="cache" type="bool" default="True">
+  Whether to cache scraped data
+</ParamField>
+
+#### Example
+
+```python
+from premier_league import RankingTable
+
+# Get current Premier League table
+table = RankingTable()
+
+# Get La Liga table for a specific season
+la_liga = RankingTable(
+    league="La Liga",
+    target_season="2022-2023"
+)
+
+# Disable caching
+table_no_cache = RankingTable(league="Serie A", cache=False)
+```
+
+---
+
+## Methods
+
+### get_ranking_list
+
+```python
+get_ranking_list() -> list
+```
+
+Get the ranking list.
+
+<ResponseField name="return" type="list">
+  The processed ranking data as a list of lists. Each inner list represents a team's ranking data
+</ResponseField>
+
+#### Example
+
+```python
+table = RankingTable()
+ranking = table.get_ranking_list()
+
+# Display rankings
+for row in ranking:
+    print(row)
+```
+
+---
+
+### get_ranking_csv
+
+```python
+get_ranking_csv(
+    file_name: str,
+    header: str = None
+) -> None
+```
+
+Save the ranking data to a CSV file.
+
+<ParamField path="file_name" type="str" required>
+  The name of the file to save the data to (without extension)
+</ParamField>
+
+<ParamField path="header" type="str" default="None">
+  The header to include in the CSV file
+</ParamField>
+
+<ResponseField name="return" type="None">
+  This method doesn't return a value. It creates a CSV file
+</ResponseField>
+
+#### Example
+
+```python
+table = RankingTable(league="Premier League")
+table.get_ranking_csv(
+    "premier_league_table",
+    header="2023-24 Premier League Standings"
+)
+```
+
+---
+
+### get_ranking_json
+
+```python
+get_ranking_json(
+    file_name: str,
+    header: str = None
+) -> None
+```
+
+Save the ranking data to a JSON file.
+
+<ParamField path="file_name" type="str" required>
+  The name of the file to save the data to (without extension)
+</ParamField>
+
+<ParamField path="header" type="str" default="None">
+  The header to include in the JSON file
+</ParamField>
+
+<ResponseField name="return" type="None">
+  This method doesn't return a value. It creates a JSON file
+</ResponseField>
+
+#### Example
+
+```python
+table = RankingTable(league="Bundesliga")
+table.get_ranking_json(
+    "bundesliga_table",
+    header="Bundesliga Standings"
+)
+```
+
+---
+
+### get_ranking_dict
+
+```python
+get_ranking_dict(
+    header: str = None
+) -> dict
+```
+
+Get the ranking data as a dictionary.
+
+<ParamField path="header" type="str" default="None">
+  The header to include in the dictionary (parent key for the entire data)
+</ParamField>
+
+<ResponseField name="return" type="dict">
+  The processed ranking data as a dictionary
+</ResponseField>
+
+#### Example
+
+```python
+table = RankingTable(league="Serie A")
+ranking_dict = table.get_ranking_dict(header="Serie A Table")
+print(ranking_dict)
+```
+
+---
+
+### get_ranking_pdf
+
+```python
+get_ranking_pdf(
+    file_name: str,
+    dir: str = "files"
+) -> None
+```
+
+Generate a PDF file containing the ranking table. Requires `premier_league[pdf]` to be installed.
+
+This method creates a formatted PDF file with the ranking table, including color-coded rows for European qualification spots and relegation.
+
+<ParamField path="file_name" type="str" required>
+  The name of the file to save the PDF to (without extension)
+</ParamField>
+
+<ParamField path="dir" type="str" default="files">
+  The directory to save the PDF file to
+</ParamField>
+
+<ResponseField name="return" type="None">
+  This method doesn't return a value. It creates a PDF file
+</ResponseField>
+
+#### PDF Color Coding
+
+The PDF table uses color coding to indicate:
+- **Light Green**: Champions League qualification
+- **Medium Green**: Europa League qualification
+- **Dark Green**: Europa Conference League qualification
+- **Red**: Relegation zone
+
+#### Example
+
+```python
+table = RankingTable(league="Premier League")
+table.get_ranking_pdf(
+    "premier_league_table",
+    dir="output_pdfs"
+)
+```
+
+---
+
+### find_season_limit
+
+```python
+find_season_limit() -> int
+```
+
+Find the season limit for the given league. This represents the earliest season with available data.
+
+<ResponseField name="return" type="int">
+  The earliest year with data for the league:
+  - Premier League: 1947
+  - La Liga: 1929
+  - Serie A: 1929
+  - Ligue 1: 1945
+  - Bundesliga: 1963
+</ResponseField>
+
+#### Example
+
+```python
+table = RankingTable(league="Bundesliga")
+limit = table.find_season_limit()
+print(f"Earliest season available: {limit}")  # 1963
+```
+
+---
+
+## Attributes
+
+### league
+
+```python
+league: str
+```
+
+The league name in title case.
+
+---
+
+### season
+
+```python
+season: str
+```
+
+The current or target season in "YYYY-YYYY" format (e.g., "2023-2024").
+
+---
+
+### ranking_list
+
+```python
+ranking_list: list
+```
+
+The processed ranking data as a list of lists.
+
+---
+
+## European Qualification Logic
+
+For Premier League seasons from 2021 onwards, the class automatically determines European qualification spots based on:
+
+- **Champions League winners**: Automatic Champions League spot
+- **Europa League winners**: Automatic Champions League spot
+- **Europa Conference League winners**: Automatic Europa League spot
+- **FA Cup winners**: Europa League spot (or next available if already qualified)
+- **EFL Cup winners**: Europa Conference League spot (or next available if already qualified)
+- **League position**: Top 4 get Champions League, positions 5-6 get Europa League/Conference League based on cup results
+
+For older seasons, the class scrapes historical European qualification data from the ranking tables.
+
+---
+
+## Season Format
+
+All seasons must be specified in the format "YYYY-YYYY" where:
+- The first year is the start of the season
+- The second year is the end of the season
+- Example: "2023-2024" represents the 2023/24 season
+
+---
+
+## Dependencies
+
+### Optional Dependencies
+
+To use the PDF export functionality, install the package with PDF support:
+
+```bash
+pip install premier_league[pdf]
+```
+
+This installs the `reportlab` library required for PDF generation.

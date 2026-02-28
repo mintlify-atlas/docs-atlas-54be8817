@@ -1,0 +1,273 @@
+---
+title: Team
+description: SQLAlchemy model representing a Premier League team
+---
+
+## Overview
+
+The `Team` model represents a Premier League football club. It stores basic team information and provides relationships to games and statistics. Each team belongs to a specific league and can participate in multiple games as either home or away team.
+
+## Model Definition
+
+**Table Name:** `team`
+
+**Location:** `premier_league/data/models/team.py:7`
+
+## Fields
+
+<ResponseField name="id" type="String" required>
+  Unique identifier for the team. Primary key.
+</ResponseField>
+
+<ResponseField name="name" type="String" required>
+  The team's display name (e.g., "Arsenal", "Liverpool", "Manchester United"). Cannot be null.
+</ResponseField>
+
+<ResponseField name="league_id" type="Integer" required>
+  Foreign key reference to the league the team belongs to. Links to `league.id`. Cannot be null.
+</ResponseField>
+
+## Relationships
+
+<ResponseField name="home_games" type="List[Game]">
+  SQLAlchemy relationship to all `Game` objects where this team is the home team. Uses `foreign_keys="Game.home_team_id"` and back-populates `home_team` on the Game model.
+</ResponseField>
+
+<ResponseField name="away_games" type="List[Game]">
+  SQLAlchemy relationship to all `Game` objects where this team is the away team. Uses `foreign_keys="Game.away_team_id"` and back-populates `away_team` on the Game model.
+</ResponseField>
+
+<ResponseField name="game_stats" type="List[GameStats]">
+  SQLAlchemy relationship to all `GameStats` objects associated with this team across all games.
+</ResponseField>
+
+<ResponseField name="league" type="League">
+  SQLAlchemy relationship to the `League` object this team belongs to. Back-populates `teams` on the League model.
+</ResponseField>
+
+## Database Indexes
+
+The Team model includes a unique composite index:
+
+- `idx_team_name_league`: Unique composite index on (`name`, `league_id`) ensuring team names are unique within each league
+
+## Usage Examples
+
+### Querying Teams
+
+```python
+from sqlalchemy.orm import Session
+from premier_league.data.models import Team
+
+# Get a team by ID
+team = session.query(Team).filter(Team.id == "team_arsenal").first()
+
+# Get a team by name
+team = session.query(Team).filter(Team.name == "Arsenal").first()
+
+# Get all teams in a league
+teams = session.query(Team).filter(Team.league_id == 1).all()
+
+# Get teams alphabetically
+teams = session.query(Team).order_by(Team.name).all()
+```
+
+### Accessing Team Games
+
+```python
+# Get all home games for a team
+team = session.query(Team).filter(Team.name == "Liverpool").first()
+
+for game in team.home_games:
+    print(f"{game.date}: {team.name} {game.home_goals} - {game.away_goals} {game.away_team.name}")
+
+# Get all away games
+for game in team.away_games:
+    print(f"{game.date}: {game.home_team.name} {game.home_goals} - {game.away_goals} {team.name}")
+
+# Get all games (home and away)
+all_games = team.home_games + team.away_games
+all_games.sort(key=lambda g: g.date)
+
+for game in all_games:
+    if game.home_team_id == team.id:
+        result = f"{game.home_goals}-{game.away_goals} vs {game.away_team.name}"
+    else:
+        result = f"{game.away_goals}-{game.home_goals} vs {game.home_team.name}"
+    print(f"{game.date}: {result}")
+```
+
+### Accessing Team Statistics
+
+```python
+# Get all statistics for a team
+team = session.query(Team).filter(Team.name == "Manchester City").first()
+
+for stats in team.game_stats:
+    game = stats.game
+    print(f"Game: {game.home_team.name} vs {game.away_team.name}")
+    print(f"xG: {stats.xG}, Possession: {stats.possession_rate}%")
+```
+
+### Calculating Team Metrics
+
+```python
+from sqlalchemy import func
+from premier_league.data.models import Team, Game, GameStats
+
+# Calculate total points for a team in a season
+team = session.query(Team).filter(Team.name == "Arsenal").first()
+
+home_points = session.query(func.sum(Game.home_team_points)).filter(
+    Game.home_team_id == team.id,
+    Game.season == "2023-24"
+).scalar() or 0
+
+away_points = session.query(func.sum(Game.away_team_points)).filter(
+    Game.away_team_id == team.id,
+    Game.season == "2023-24"
+).scalar() or 0
+
+total_points = home_points + away_points
+print(f"{team.name} total points: {total_points}")
+
+# Calculate average xG for a team
+avg_xg = session.query(func.avg(GameStats.xG)).filter(
+    GameStats.team_id == team.id
+).scalar()
+
+print(f"{team.name} average xG: {avg_xg:.2f}")
+
+# Calculate goals scored and conceded
+home_goals_scored = session.query(func.sum(Game.home_goals)).filter(
+    Game.home_team_id == team.id,
+    Game.season == "2023-24"
+).scalar() or 0
+
+away_goals_scored = session.query(func.sum(Game.away_goals)).filter(
+    Game.away_team_id == team.id,
+    Game.season == "2023-24"
+).scalar() or 0
+
+home_goals_conceded = session.query(func.sum(Game.away_goals)).filter(
+    Game.home_team_id == team.id,
+    Game.season == "2023-24"
+).scalar() or 0
+
+away_goals_conceded = session.query(func.sum(Game.home_goals)).filter(
+    Game.away_team_id == team.id,
+    Game.season == "2023-24"
+).scalar() or 0
+
+total_scored = home_goals_scored + away_goals_scored
+total_conceded = home_goals_conceded + away_goals_conceded
+goal_difference = total_scored - total_conceded
+
+print(f"{team.name}: {total_scored} scored, {total_conceded} conceded, {goal_difference:+d} GD")
+```
+
+### Creating a New Team
+
+```python
+from premier_league.data.models import Team
+
+new_team = Team(
+    id="team_newcastle",
+    name="Newcastle United",
+    league_id=1
+)
+
+session.add(new_team)
+session.commit()
+```
+
+### Building a League Table
+
+```python
+from sqlalchemy.orm import Session
+from premier_league.data.models import Team, Game
+
+def build_league_table(session: Session, league_id: int, season: str):
+    teams = session.query(Team).filter(Team.league_id == league_id).all()
+    
+    table = []
+    for team in teams:
+        # Calculate points
+        home_points = session.query(func.sum(Game.home_team_points)).filter(
+            Game.home_team_id == team.id,
+            Game.season == season
+        ).scalar() or 0
+        
+        away_points = session.query(func.sum(Game.away_team_points)).filter(
+            Game.away_team_id == team.id,
+            Game.season == season
+        ).scalar() or 0
+        
+        points = home_points + away_points
+        
+        # Calculate games played
+        games_played = session.query(func.count(Game.id)).filter(
+            (Game.home_team_id == team.id) | (Game.away_team_id == team.id),
+            Game.season == season
+        ).scalar()
+        
+        # Calculate goals
+        home_scored = session.query(func.sum(Game.home_goals)).filter(
+            Game.home_team_id == team.id,
+            Game.season == season
+        ).scalar() or 0
+        
+        away_scored = session.query(func.sum(Game.away_goals)).filter(
+            Game.away_team_id == team.id,
+            Game.season == season
+        ).scalar() or 0
+        
+        home_conceded = session.query(func.sum(Game.away_goals)).filter(
+            Game.home_team_id == team.id,
+            Game.season == season
+        ).scalar() or 0
+        
+        away_conceded = session.query(func.sum(Game.home_goals)).filter(
+            Game.away_team_id == team.id,
+            Game.season == season
+        ).scalar() or 0
+        
+        goals_for = home_scored + away_scored
+        goals_against = home_conceded + away_conceded
+        goal_difference = goals_for - goals_against
+        
+        table.append({
+            'team': team.name,
+            'played': games_played,
+            'points': points,
+            'goals_for': goals_for,
+            'goals_against': goals_against,
+            'goal_difference': goal_difference
+        })
+    
+    # Sort by points, then goal difference, then goals scored
+    table.sort(key=lambda x: (x['points'], x['goal_difference'], x['goals_for']), reverse=True)
+    
+    return table
+
+# Usage
+table = build_league_table(session, league_id=1, season="2023-24")
+for position, row in enumerate(table, start=1):
+    print(f"{position}. {row['team']}: {row['points']} pts (P{row['played']}, GD {row['goal_difference']:+d})")
+```
+
+## Data Model Example
+
+```json
+{
+  "id": "team_arsenal",
+  "name": "Arsenal",
+  "league_id": 1
+}
+```
+
+## Related Models
+
+- [Game](/api-reference/models/game) - Games that the team has played in
+- [League](/api-reference/models/league) - The league the team belongs to
+- [GameStats](/api-reference/models/game-stats) - Statistics for the team's performances in games

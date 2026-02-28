@@ -1,0 +1,565 @@
+---
+title: GameStats
+description: SQLAlchemy model representing detailed statistics for a team in a specific game
+---
+
+## Overview
+
+The `GameStats` model stores comprehensive match statistics for a team's performance in a specific game. It includes advanced metrics such as expected goals (xG), passing statistics, defensive actions, possession data, and goalkeeping stats. Each game typically has two `GameStats` records (one per team).
+
+## Model Definition
+
+**Table Name:** `game_stats`
+
+**Location:** `premier_league/data/models/game_stats.py:7`
+
+## Primary Fields
+
+<ResponseField name="id" type="Integer" required>
+  Auto-incrementing primary key for the game stats record.
+</ResponseField>
+
+<ResponseField name="game_id" type="String" required>
+  Foreign key reference to the game. Links to `game.id`.
+</ResponseField>
+
+<ResponseField name="team_id" type="String" required>
+  Foreign key reference to the team. Links to `team.id`.
+</ResponseField>
+
+## Relationships
+
+<ResponseField name="game" type="Game">
+  SQLAlchemy relationship to the `Game` object. Configured with `uselist=False` to return a single game object.
+</ResponseField>
+
+<ResponseField name="team" type="Team">
+  SQLAlchemy relationship to the `Team` object that these statistics belong to.
+</ResponseField>
+
+## Expected Goals and Assists
+
+<ResponseField name="xG" type="Float">
+  Expected goals - a measure of the quality of chances created by the team.
+</ResponseField>
+
+<ResponseField name="xA" type="Float">
+  Expected assists - a measure of the quality of goal-scoring opportunities created for teammates.
+</ResponseField>
+
+<ResponseField name="xAG" type="Float">
+  Expected assisted goals - combines xG and xA for an overall attacking threat metric.
+</ResponseField>
+
+## Shots Statistics
+
+All shot statistics are broken down by position (FW=Forward, MF=Midfielder, DF=Defender):
+
+<ResponseField name="shots_total_FW" type="Integer">
+  Total shots taken by forwards.
+</ResponseField>
+
+<ResponseField name="shots_total_MF" type="Integer">
+  Total shots taken by midfielders.
+</ResponseField>
+
+<ResponseField name="shots_total_DF" type="Integer">
+  Total shots taken by defenders.
+</ResponseField>
+
+<ResponseField name="shots_on_target_FW" type="Integer">
+  Shots on target by forwards.
+</ResponseField>
+
+<ResponseField name="shots_on_target_MF" type="Integer">
+  Shots on target by midfielders.
+</ResponseField>
+
+<ResponseField name="shots_on_target_DF" type="Integer">
+  Shots on target by defenders.
+</ResponseField>
+
+## Chance Creation
+
+<ResponseField name="shot_creating_chances_FW" type="Integer">
+  Actions by forwards that lead to a shot (pass, dribble, foul drawn, etc.).
+</ResponseField>
+
+<ResponseField name="shot_creating_chances_MF" type="Integer">
+  Actions by midfielders that lead to a shot.
+</ResponseField>
+
+<ResponseField name="shot_creating_chances_DF" type="Integer">
+  Actions by defenders that lead to a shot.
+</ResponseField>
+
+<ResponseField name="goal_creating_actions_FW" type="Integer">
+  Actions by forwards that directly lead to a goal.
+</ResponseField>
+
+<ResponseField name="goal_creating_actions_MF" type="Integer">
+  Actions by midfielders that directly lead to a goal.
+</ResponseField>
+
+<ResponseField name="goal_creating_actions_DF" type="Integer">
+  Actions by defenders that directly lead to a goal.
+</ResponseField>
+
+## Passing Statistics
+
+<ResponseField name="passes_completed_FW" type="Integer">
+  Successful passes completed by forwards.
+</ResponseField>
+
+<ResponseField name="passes_completed_MF" type="Integer">
+  Successful passes completed by midfielders.
+</ResponseField>
+
+<ResponseField name="passes_completed_DF" type="Integer">
+  Successful passes completed by defenders.
+</ResponseField>
+
+<ResponseField name="pass_completion_percentage_FW" type="Float">
+  Pass completion percentage for forwards.
+</ResponseField>
+
+<ResponseField name="pass_completion_percentage_MF" type="Float">
+  Pass completion percentage for midfielders.
+</ResponseField>
+
+<ResponseField name="pass_completion_percentage_DF" type="Float">
+  Pass completion percentage for defenders.
+</ResponseField>
+
+<ResponseField name="key_passes" type="Integer">
+  Passes that directly lead to a shot.
+</ResponseField>
+
+<ResponseField name="passes_into_final_third" type="Integer">
+  Completed passes into the attacking third of the pitch.
+</ResponseField>
+
+<ResponseField name="passes_into_penalty_area" type="Integer">
+  Completed passes into the opponent's penalty area.
+</ResponseField>
+
+<ResponseField name="crosses_into_penalty_area" type="Integer">
+  Crosses completed into the opponent's penalty area.
+</ResponseField>
+
+<ResponseField name="progressive_passes" type="Integer">
+  Passes that move the ball significantly closer to the opponent's goal.
+</ResponseField>
+
+## Defensive Statistics
+
+<ResponseField name="tackles_won_FW" type="Integer">
+  Successful tackles by forwards.
+</ResponseField>
+
+<ResponseField name="tackles_won_MF" type="Integer">
+  Successful tackles by midfielders.
+</ResponseField>
+
+<ResponseField name="tackles_won_DF" type="Integer">
+  Successful tackles by defenders.
+</ResponseField>
+
+<ResponseField name="dribblers_challenged_won_FW" type="Integer">
+  Successful challenges against dribbling opponents by forwards.
+</ResponseField>
+
+<ResponseField name="dribblers_challenged_won_MF" type="Integer">
+  Successful challenges against dribbling opponents by midfielders.
+</ResponseField>
+
+<ResponseField name="dribblers_challenged_won_DF" type="Integer">
+  Successful challenges against dribbling opponents by defenders.
+</ResponseField>
+
+<ResponseField name="blocks_FW" type="Integer">
+  Blocked shots or passes by forwards.
+</ResponseField>
+
+<ResponseField name="blocks_MF" type="Integer">
+  Blocked shots or passes by midfielders.
+</ResponseField>
+
+<ResponseField name="blocks_DF" type="Integer">
+  Blocked shots or passes by defenders.
+</ResponseField>
+
+<ResponseField name="interceptions_FW" type="Integer">
+  Interceptions by forwards.
+</ResponseField>
+
+<ResponseField name="interceptions_MF" type="Integer">
+  Interceptions by midfielders.
+</ResponseField>
+
+<ResponseField name="interceptions_DF" type="Integer">
+  Interceptions by defenders.
+</ResponseField>
+
+<ResponseField name="clearances_FW" type="Integer">
+  Clearances by forwards.
+</ResponseField>
+
+<ResponseField name="clearances_MF" type="Integer">
+  Clearances by midfielders.
+</ResponseField>
+
+<ResponseField name="clearances_DF" type="Integer">
+  Clearances by defenders.
+</ResponseField>
+
+<ResponseField name="errors_leading_to_goal" type="Integer">
+  Defensive errors that directly resulted in an opponent's goal.
+</ResponseField>
+
+## Possession Statistics
+
+<ResponseField name="possession_rate" type="Integer">
+  Ball possession percentage (0-100).
+</ResponseField>
+
+<ResponseField name="touches_FW" type="Integer">
+  Total ball touches by forwards.
+</ResponseField>
+
+<ResponseField name="touches_MF" type="Integer">
+  Total ball touches by midfielders.
+</ResponseField>
+
+<ResponseField name="touches_DF" type="Integer">
+  Total ball touches by defenders.
+</ResponseField>
+
+<ResponseField name="touches_att_pen_area_FW" type="Integer">
+  Touches in the attacking penalty area by forwards.
+</ResponseField>
+
+<ResponseField name="touches_att_pen_area_MF" type="Integer">
+  Touches in the attacking penalty area by midfielders.
+</ResponseField>
+
+<ResponseField name="touches_att_pen_area_DF" type="Integer">
+  Touches in the attacking penalty area by defenders.
+</ResponseField>
+
+<ResponseField name="take_ons_FW" type="Integer">
+  Attempted dribbles/take-ons by forwards.
+</ResponseField>
+
+<ResponseField name="take_ons_MF" type="Integer">
+  Attempted dribbles/take-ons by midfielders.
+</ResponseField>
+
+<ResponseField name="take_ons_DF" type="Integer">
+  Attempted dribbles/take-ons by defenders.
+</ResponseField>
+
+<ResponseField name="successful_take_ons_FW" type="Integer">
+  Successful dribbles/take-ons by forwards.
+</ResponseField>
+
+<ResponseField name="successful_take_ons_MF" type="Integer">
+  Successful dribbles/take-ons by midfielders.
+</ResponseField>
+
+<ResponseField name="successful_take_ons_DF" type="Integer">
+  Successful dribbles/take-ons by defenders.
+</ResponseField>
+
+<ResponseField name="carries_FW" type="Integer">
+  Number of times forwards carried the ball.
+</ResponseField>
+
+<ResponseField name="carries_MF" type="Integer">
+  Number of times midfielders carried the ball.
+</ResponseField>
+
+<ResponseField name="carries_DF" type="Integer">
+  Number of times defenders carried the ball.
+</ResponseField>
+
+<ResponseField name="carries_into_penalty_area" type="Integer">
+  Ball carries that entered the opponent's penalty area.
+</ResponseField>
+
+<ResponseField name="total_carrying_distance_FW" type="Integer">
+  Total distance (in yards) the ball was carried by forwards.
+</ResponseField>
+
+<ResponseField name="total_carrying_distance_MF" type="Integer">
+  Total distance (in yards) the ball was carried by midfielders.
+</ResponseField>
+
+<ResponseField name="total_carrying_distance_DF" type="Integer">
+  Total distance (in yards) the ball was carried by defenders.
+</ResponseField>
+
+<ResponseField name="dispossessed_FW" type="Integer">
+  Times forwards lost possession to an opponent.
+</ResponseField>
+
+<ResponseField name="dispossessed_MF" type="Integer">
+  Times midfielders lost possession to an opponent.
+</ResponseField>
+
+<ResponseField name="dispossessed_DF" type="Integer">
+  Times defenders lost possession to an opponent.
+</ResponseField>
+
+<ResponseField name="aerials_won_FW" type="Integer">
+  Aerial duels won by forwards.
+</ResponseField>
+
+<ResponseField name="aerials_won_MF" type="Integer">
+  Aerial duels won by midfielders.
+</ResponseField>
+
+<ResponseField name="aerials_won_DF" type="Integer">
+  Aerial duels won by defenders.
+</ResponseField>
+
+<ResponseField name="aerials_lost_FW" type="Integer">
+  Aerial duels lost by forwards.
+</ResponseField>
+
+<ResponseField name="aerials_lost_MF" type="Integer">
+  Aerial duels lost by midfielders.
+</ResponseField>
+
+<ResponseField name="aerials_lost_DF" type="Integer">
+  Aerial duels lost by defenders.
+</ResponseField>
+
+<ResponseField name="miss_controlled_FW" type="Integer">
+  Poor ball controls by forwards.
+</ResponseField>
+
+<ResponseField name="miss_controlled_MF" type="Integer">
+  Poor ball controls by midfielders.
+</ResponseField>
+
+<ResponseField name="miss_controlled_DF" type="Integer">
+  Poor ball controls by defenders.
+</ResponseField>
+
+## Goalkeeping Statistics
+
+<ResponseField name="save_percentage" type="Float">
+  Percentage of shots on target that were saved by the goalkeeper.
+</ResponseField>
+
+<ResponseField name="saves" type="Integer">
+  Total number of saves made by the goalkeeper.
+</ResponseField>
+
+<ResponseField name="PSxG" type="Float">
+  Post-shot expected goals - quality of shots faced by the goalkeeper.
+</ResponseField>
+
+<ResponseField name="passes_completed_GK" type="Integer">
+  Successful passes completed by the goalkeeper.
+</ResponseField>
+
+<ResponseField name="crosses_stopped" type="Integer">
+  Crosses into the box stopped by the goalkeeper.
+</ResponseField>
+
+<ResponseField name="passes_40_yard_completed_GK" type="Integer">
+  Long passes (40+ yards) completed by the goalkeeper.
+</ResponseField>
+
+## Other Match Statistics
+
+<ResponseField name="yellow_card" type="Integer">
+  Number of yellow cards received.
+</ResponseField>
+
+<ResponseField name="red_card" type="Integer">
+  Number of red cards received.
+</ResponseField>
+
+<ResponseField name="pens_won" type="Integer">
+  Penalties won by the team.
+</ResponseField>
+
+<ResponseField name="pens_conceded" type="Integer">
+  Penalties conceded by the team.
+</ResponseField>
+
+<ResponseField name="fouls_committed_FW" type="Integer">
+  Fouls committed by forwards.
+</ResponseField>
+
+<ResponseField name="fouls_committed_MF" type="Integer">
+  Fouls committed by midfielders.
+</ResponseField>
+
+<ResponseField name="fouls_committed_DF" type="Integer">
+  Fouls committed by defenders.
+</ResponseField>
+
+<ResponseField name="fouls_drawn_FW" type="Integer">
+  Fouls drawn by forwards.
+</ResponseField>
+
+<ResponseField name="fouls_drawn_MF" type="Integer">
+  Fouls drawn by midfielders.
+</ResponseField>
+
+<ResponseField name="fouls_drawn_DF" type="Integer">
+  Fouls drawn by defenders.
+</ResponseField>
+
+<ResponseField name="offside_FW" type="Integer">
+  Offside calls against forwards.
+</ResponseField>
+
+<ResponseField name="offside_MF" type="Integer">
+  Offside calls against midfielders.
+</ResponseField>
+
+<ResponseField name="offside_DF" type="Integer">
+  Offside calls against defenders.
+</ResponseField>
+
+## Database Indexes
+
+The GameStats model includes a unique composite index:
+
+- `idx_game_team_stats`: Unique composite index on (`game_id`, `team_id`) ensuring each team has only one stats record per game
+
+## Methods
+
+### to_dict()
+
+```python
+def to_dict(self) -> dict:
+```
+
+Converts the GameStats model instance to a dictionary representation.
+
+**Returns:**
+- `dict`: Dictionary containing all statistics fields.
+
+**Example Output:**
+```json
+{
+  "id": 1,
+  "game_id": "game_12345",
+  "team_id": "team_arsenal",
+  "xG": 2.3,
+  "xA": 1.8,
+  "xAG": 4.1,
+  "shots_total_FW": 8,
+  "shots_total_MF": 5,
+  "shots_total_DF": 2,
+  "shots_on_target_FW": 4,
+  "shots_on_target_MF": 2,
+  "shots_on_target_DF": 1,
+  "possession_rate": 58,
+  "passes_completed_FW": 120,
+  "passes_completed_MF": 280,
+  "passes_completed_DF": 195,
+  "key_passes": 12,
+  "tackles_won_DF": 8,
+  "yellow_card": 2,
+  "red_card": 0
+}
+```
+
+## Usage Examples
+
+### Querying Game Statistics
+
+```python
+from sqlalchemy.orm import Session
+from premier_league.data.models import GameStats
+
+# Get stats for a specific team in a game
+stats = session.query(GameStats).filter(
+    GameStats.game_id == "game_12345",
+    GameStats.team_id == "team_arsenal"
+).first()
+
+# Get all stats for a specific game
+game_stats = session.query(GameStats).filter(
+    GameStats.game_id == "game_12345"
+).all()
+
+for stats in game_stats:
+    print(f"Team {stats.team_id}: xG={stats.xG}, possession={stats.possession_rate}%")
+
+# Find high xG performances
+high_xg = session.query(GameStats).filter(
+    GameStats.xG > 3.0
+).order_by(GameStats.xG.desc()).all()
+```
+
+### Accessing Relationships
+
+```python
+# Access related game and team data
+stats = session.query(GameStats).filter(GameStats.id == 1).first()
+
+print(f"Game: {stats.game.home_team.name} vs {stats.game.away_team.name}")
+print(f"Team: {stats.team.name}")
+print(f"xG: {stats.xG}")
+print(f"Possession: {stats.possession_rate}%")
+```
+
+### Creating New Game Statistics
+
+```python
+from premier_league.data.models import GameStats
+
+new_stats = GameStats(
+    game_id="game_12346",
+    team_id="team_liverpool",
+    xG=2.8,
+    xA=1.5,
+    xAG=4.3,
+    shots_total_FW=10,
+    shots_on_target_FW=6,
+    possession_rate=62,
+    passes_completed_FW=145,
+    passes_completed_MF=320,
+    passes_completed_DF=210,
+    tackles_won_DF=12,
+    yellow_card=1,
+    red_card=0
+)
+
+session.add(new_stats)
+session.commit()
+```
+
+### Analyzing Team Performance
+
+```python
+# Calculate average xG for a team across multiple games
+from sqlalchemy import func
+
+avg_xg = session.query(func.avg(GameStats.xG)).filter(
+    GameStats.team_id == "team_arsenal"
+).scalar()
+
+print(f"Average xG: {avg_xg:.2f}")
+
+# Find teams with high possession
+high_possession = session.query(GameStats).filter(
+    GameStats.possession_rate > 60
+).join(GameStats.team).all()
+
+for stats in high_possession:
+    print(f"{stats.team.name}: {stats.possession_rate}% possession")
+```
+
+## Related Models
+
+- [Game](/api-reference/models/game) - The game these statistics belong to
+- [Team](/api-reference/models/team) - The team that recorded these statistics

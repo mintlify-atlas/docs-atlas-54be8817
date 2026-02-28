@@ -1,0 +1,405 @@
+---
+title: Quickstart Guide
+description: Get the Premier League Flask API running locally in minutes with practical examples
+---
+
+This guide will help you start the Flask API server and make your first requests to explore Premier League data.
+
+## Prerequisites
+
+Ensure you have the Premier League library installed:
+
+```bash
+pip install premier-league
+```
+
+## Basic Server Setup
+
+The simplest way to start the API server:
+
+<Steps>
+  <Step title="Import and run the server">
+    Create a Python file or use an interactive Python session:
+
+    ```python
+    from premier_league import run_server
+
+    # Start the development server
+    run_server()
+    ```
+
+    The server will start on `http://0.0.0.0:3000` by default.
+  </Step>
+
+  <Step title="Verify the server is running">
+    Open a new terminal and test with curl:
+
+    ```bash
+    curl http://localhost:3000/ranking/table
+    ```
+
+    You should receive JSON data with the current Premier League standings.
+  </Step>
+</Steps>
+
+## Custom Configuration
+
+### Using Function Parameters
+
+Customize the server using `run_server` parameters:
+
+```python
+from premier_league import run_server
+
+# Custom host and port with debug mode
+run_server(
+    host="127.0.0.1",
+    port=8000,
+    debug=True
+)
+```
+
+Server will be available at `http://127.0.0.1:8000`.
+
+### Using ServerConfig Object
+
+For more control, use the `ServerConfig` class:
+
+```python
+from premier_league.api.config.config import ServerConfig
+from premier_league import run_server
+
+config = ServerConfig(
+    HOST="0.0.0.0",
+    PORT=8080,
+    DEBUG=True,
+    RATE_LIMIT=200,  # 200 requests per minute
+    CACHE_DEFAULT_TIMEOUT=600,  # 10 minute cache
+    CORS_ORIGINS=["http://localhost:3000", "https://myapp.com"]
+)
+
+run_server(config_dict=config.__dict__)
+```
+
+### Using YAML Configuration
+
+<Steps>
+  <Step title="Create a configuration file">
+    Create `server_config.yaml`:
+
+    ```yaml
+    HOST: 0.0.0.0
+    PORT: 8080
+    DEBUG: true
+    SECRET_KEY: your-secret-key-here
+    RATE_LIMIT: 150
+    CACHE_TYPE: simple
+    CACHE_DEFAULT_TIMEOUT: 600
+    LOG_LEVEL: DEBUG
+    CORS_ORIGINS:
+      - http://localhost:3000
+      - https://yourapp.com
+    ```
+  </Step>
+
+  <Step title="Load and run with the config">
+    ```python
+    from premier_league import run_server
+
+    run_server(config_path="server_config.yaml")
+    ```
+  </Step>
+</Steps>
+
+### Using Environment Variables
+
+<Steps>
+  <Step title="Set environment variables">
+    ```bash
+    export PREMIER_LEAGUE_HOST=0.0.0.0
+    export PREMIER_LEAGUE_PORT=8080
+    export PREMIER_LEAGUE_DEBUG=true
+    export PREMIER_LEAGUE_RATE_LIMIT=200
+    export PREMIER_LEAGUE_CORS_ORIGINS="http://localhost:3000,https://myapp.com"
+    ```
+  </Step>
+
+  <Step title="Run the server">
+    The server will automatically load environment variables:
+
+    ```python
+    from premier_league import run_server
+
+    # Loads from environment variables
+    run_server()
+    ```
+  </Step>
+</Steps>
+
+## Testing Endpoints
+
+Once your server is running, test the various endpoints:
+
+### Get Top Goalscorers
+
+```bash
+# Get top 10 goalscorers
+curl "http://localhost:3000/players/goals?limit=10"
+
+# Get scorers for specific season
+curl "http://localhost:3000/players/goals?season=2023-2024&limit=5"
+```
+
+Example response:
+```json
+[
+  {
+    "player": "Erling Haaland",
+    "team": "Manchester City",
+    "goals": 36,
+    "assists": 11,
+    "matches": 35
+  },
+  ...
+]
+```
+
+### Get League Standings
+
+```bash
+# Get current standings
+curl "http://localhost:3000/ranking/table"
+
+# Get standings for specific season
+curl "http://localhost:3000/ranking?season=2022-2023"
+```
+
+### Get Transfer Information
+
+```bash
+# Get all teams
+curl "http://localhost:3000/all_teams"
+
+# Get incoming transfers for a team
+curl "http://localhost:3000/transfers/in?team=Arsenal"
+
+# Get outgoing transfers
+curl "http://localhost:3000/transfers/out?team=Chelsea&season=2023-2024"
+```
+
+### Export Data to Files
+
+```bash
+# Export top scorers to CSV
+curl "http://localhost:3000/players/goals/csv_file?filename=scorers&limit=20" \
+  --output scorers.csv
+
+# Export league table to JSON
+curl "http://localhost:3000/ranking/json_file?filename=standings" \
+  --output standings.json
+
+# Export league table to PDF
+curl "http://localhost:3000/ranking/pdf_file?filename=table" \
+  --output table.pdf
+
+# Export transfers to CSV
+curl "http://localhost:3000/transfers/csv_file?team=Liverpool&filename=transfers&transfer_type=both" \
+  --output transfers.csv
+```
+
+## Using the API in Python
+
+You can also call the API from Python using the `requests` library:
+
+```python
+import requests
+
+# Base URL
+base_url = "http://localhost:3000"
+
+# Get top 10 goalscorers
+response = requests.get(f"{base_url}/players/goals", params={
+    "limit": 10,
+    "season": "2023-2024"
+})
+scorers = response.json()
+print(scorers)
+
+# Get league standings
+response = requests.get(f"{base_url}/ranking/table")
+standings = response.json()
+
+for team in standings:
+    print(f"{team['position']}. {team['team']} - {team['points']} pts")
+
+# Get team transfers
+response = requests.get(f"{base_url}/transfers/in", params={
+    "team": "Manchester United",
+    "season": "2023-2024"
+})
+transfers = response.json()
+print(f"Incoming transfers: {len(transfers)}")
+```
+
+## Production Deployment
+
+For production environments, use the production mode with multiple workers:
+
+```python
+from premier_league import run_server
+
+run_server(
+    host="0.0.0.0",
+    port=8000,
+    mode="production",  # Uses Gunicorn instead of Flask dev server
+    workers=4,  # Number of worker processes
+    config_path="production_config.yaml"
+)
+```
+
+Production configuration example (`production_config.yaml`):
+
+```yaml
+HOST: 0.0.0.0
+PORT: 8000
+DEBUG: false
+SECRET_KEY: your-secure-secret-key
+RATE_LIMIT: 100
+CACHE_TYPE: redis  # Use Redis for production caching
+CACHE_DEFAULT_TIMEOUT: 300
+LOG_LEVEL: WARNING
+CORS_ORIGINS:
+  - https://yourproductionapp.com
+```
+
+## Available Query Parameters
+
+Most endpoints support these common parameters:
+
+| Parameter | Type | Description | Example |
+|-----------|------|-------------|----------|
+| `season` | string | Filter by season | `2023-2024` |
+| `league` | string | Filter by league | `Premier League` |
+| `limit` | integer | Limit number of results | `10` |
+| `team` | string | Filter by team name | `Arsenal` |
+| `filename` | string | Export filename (without extension) | `my_data` |
+| `header` | string | Include metadata in response | `true` |
+| `transfer_type` | string | Transfer direction: `in`, `out`, or `both` | `in` |
+
+## Common Error Responses
+
+The API returns structured error messages:
+
+**Missing Required Parameter:**
+```json
+{
+  "error": "Missing team parameter"
+}
+```
+HTTP Status: 400
+
+**Invalid Parameter Value:**
+```json
+{
+  "error": "Limit must be a number"
+}
+```
+HTTP Status: 400
+
+**Rate Limit Exceeded:**
+```
+429 Too Many Requests
+```
+
+Wait 60 seconds before making additional requests, or configure a higher rate limit.
+
+## Advanced Usage
+
+### Custom Flask App Integration
+
+If you need to integrate the API into an existing Flask application:
+
+```python
+from flask import Flask
+from premier_league.api.app import create_app
+from premier_league.api.config.config import ServerConfig
+
+# Create the Premier League API app
+config = ServerConfig(RATE_LIMIT=200)
+pl_app, config = create_app(config)
+
+# You can now access the Flask app directly
+# Register additional blueprints, middleware, etc.
+pl_app.register_blueprint(your_custom_blueprint)
+
+# Run the app
+pl_app.run(host="0.0.0.0", port=8000)
+```
+
+See `app.py:33-73` for the `create_app` function.
+
+### Programmatic Server Control
+
+For testing or embedding the server in another application:
+
+```python
+from premier_league.api.app import create_app
+from premier_league.api.config.config import ServerConfig
+import threading
+
+def start_background_server():
+    config = ServerConfig(PORT=3000)
+    app, config = create_app(config)
+    app.run(host=config.HOST, port=config.PORT)
+
+# Start server in background thread
+server_thread = threading.Thread(target=start_background_server, daemon=True)
+server_thread.start()
+
+# Your application code continues...
+import time
+import requests
+
+time.sleep(2)  # Wait for server to start
+response = requests.get("http://localhost:3000/ranking/table")
+print(response.json())
+```
+
+## Function Reference
+
+### run_server()
+
+Starts the Premier League API server (defined at `app.py:76-119`).
+
+**Parameters:**
+
+- `host` (str, optional): Host to bind to. Default: `"0.0.0.0"`
+- `port` (int, optional): Port to bind to. Default: `3000`
+- `debug` (bool, optional): Enable debug mode. Default: `False`
+- `config_path` (str, optional): Path to YAML config file. Default: `None`
+- `config_dict` (dict, optional): Dictionary of configuration options. Default: `None`
+- `mode` (str, optional): Run mode - `"development"` or `"production"`. Default: `"development"`
+- `workers` (int, optional): Number of Gunicorn workers (production mode only). Default: `1`
+
+**Example:**
+```python
+from premier_league import run_server
+
+run_server(
+    host="127.0.0.1",
+    port=8080,
+    debug=True,
+    mode="development"
+)
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="book" href="/api-reference">
+    Explore detailed endpoint documentation
+  </Card>
+  <Card title="Flask API Overview" icon="server" href="/flask-api/introduction">
+    Learn about architecture and features
+  </Card>
+</CardGroup>

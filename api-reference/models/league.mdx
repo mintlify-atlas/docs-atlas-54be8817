@@ -1,0 +1,286 @@
+---
+title: League
+description: SQLAlchemy model representing a football league
+---
+
+## Overview
+
+The `League` model represents a football league (such as the Premier League). It stores basic league information, tracks data synchronization status, and provides relationships to teams and games within the league.
+
+## Model Definition
+
+**Table Name:** `league`
+
+**Location:** `premier_league/data/models/league.py:7`
+
+## Fields
+
+<ResponseField name="id" type="Integer" required>
+  Unique identifier for the league. Primary key.
+</ResponseField>
+
+<ResponseField name="name" type="String">
+  The league's display name (e.g., "Premier League", "Championship").
+</ResponseField>
+
+<ResponseField name="up_to_date_season" type="String">
+  The most recent season for which data has been synchronized (e.g., "2023-24"). Used for tracking data freshness.
+</ResponseField>
+
+<ResponseField name="up_to_date_match_week" type="Integer">
+  The most recent match week within the `up_to_date_season` for which data has been synchronized. Used for tracking data freshness.
+</ResponseField>
+
+## Relationships
+
+<ResponseField name="games" type="List[Game]">
+  SQLAlchemy relationship to all `Game` objects belonging to this league. Back-populates `league` on the Game model.
+</ResponseField>
+
+<ResponseField name="teams" type="List[Team]">
+  SQLAlchemy relationship to all `Team` objects belonging to this league. Back-populates `league` on the Team model.
+</ResponseField>
+
+## Usage Examples
+
+### Querying Leagues
+
+```python
+from sqlalchemy.orm import Session
+from premier_league.data.models import League
+
+# Get a league by ID
+league = session.query(League).filter(League.id == 1).first()
+
+# Get a league by name
+league = session.query(League).filter(League.name == "Premier League").first()
+
+# Get all leagues
+leagues = session.query(League).all()
+```
+
+### Accessing League Data
+
+```python
+# Access league information
+league = session.query(League).filter(League.id == 1).first()
+
+print(f"League: {league.name}")
+print(f"Up to date: {league.up_to_date_season}, Week {league.up_to_date_match_week}")
+print(f"Number of teams: {len(league.teams)}")
+print(f"Number of games: {len(league.games)}")
+```
+
+### Accessing League Teams
+
+```python
+# Get all teams in a league
+league = session.query(League).filter(League.name == "Premier League").first()
+
+print(f"Teams in {league.name}:")
+for team in sorted(league.teams, key=lambda t: t.name):
+    print(f"  - {team.name}")
+```
+
+### Accessing League Games
+
+```python
+# Get all games in a league for a specific season
+league = session.query(League).filter(League.id == 1).first()
+
+season_games = [g for g in league.games if g.season == "2023-24"]
+print(f"Games in {league.name} for 2023-24 season: {len(season_games)}")
+
+# Get games for a specific match week
+week_games = [g for g in league.games if g.season == "2023-24" and g.match_week == 20]
+
+print(f"\nMatch Week 20 Results:")
+for game in sorted(week_games, key=lambda g: g.date):
+    print(f"{game.home_team.name} {game.home_goals} - {game.away_goals} {game.away_team.name}")
+```
+
+### Checking Data Freshness
+
+```python
+# Check if league data needs updating
+league = session.query(League).filter(League.id == 1).first()
+
+current_season = "2023-24"
+current_week = 25
+
+if (league.up_to_date_season != current_season or 
+    league.up_to_date_match_week < current_week):
+    print(f"League data is outdated. Current: {league.up_to_date_season} Week {league.up_to_date_match_week}")
+    print(f"Latest: {current_season} Week {current_week}")
+else:
+    print("League data is up to date")
+```
+
+### Creating a New League
+
+```python
+from premier_league.data.models import League
+
+new_league = League(
+    id=2,
+    name="Championship",
+    up_to_date_season="2023-24",
+    up_to_date_match_week=30
+)
+
+session.add(new_league)
+session.commit()
+```
+
+### Updating League Sync Status
+
+```python
+# Update league after syncing new data
+league = session.query(League).filter(League.id == 1).first()
+
+league.up_to_date_season = "2023-24"
+league.up_to_date_match_week = 28
+
+session.commit()
+print(f"Updated {league.name} to season {league.up_to_date_season}, week {league.up_to_date_match_week}")
+```
+
+### League Statistics
+
+```python
+from sqlalchemy import func
+from premier_league.data.models import League, Game
+
+league = session.query(League).filter(League.id == 1).first()
+season = "2023-24"
+
+# Calculate total goals in the league for a season
+total_goals = session.query(
+    func.sum(Game.home_goals + Game.away_goals)
+).filter(
+    Game.league_id == league.id,
+    Game.season == season
+).scalar() or 0
+
+print(f"Total goals in {league.name} {season}: {total_goals}")
+
+# Calculate average goals per game
+games_count = session.query(func.count(Game.id)).filter(
+    Game.league_id == league.id,
+    Game.season == season
+).scalar()
+
+avg_goals = total_goals / games_count if games_count > 0 else 0
+print(f"Average goals per game: {avg_goals:.2f}")
+
+# Find highest scoring games
+high_scoring = session.query(Game).filter(
+    Game.league_id == league.id,
+    Game.season == season
+).order_by(
+    (Game.home_goals + Game.away_goals).desc()
+).limit(5).all()
+
+print(f"\nTop 5 highest scoring games:")
+for game in high_scoring:
+    total = game.home_goals + game.away_goals
+    print(f"{game.home_team.name} {game.home_goals} - {game.away_goals} {game.away_team.name} ({total} goals)")
+```
+
+### Querying with Relationships
+
+```python
+from sqlalchemy.orm import joinedload
+
+# Efficiently load league with all teams (eager loading)
+league = session.query(League).options(
+    joinedload(League.teams)
+).filter(League.id == 1).first()
+
+print(f"League: {league.name}")
+for team in league.teams:
+    print(f"  - {team.name}")
+
+# Load league with games and related teams
+league = session.query(League).options(
+    joinedload(League.games).joinedload(Game.home_team),
+    joinedload(League.games).joinedload(Game.away_team)
+).filter(League.id == 1).first()
+
+for game in league.games[:10]:  # Show first 10 games
+    print(f"{game.date}: {game.home_team.name} vs {game.away_team.name}")
+```
+
+### Season Summary
+
+```python
+def get_league_season_summary(session: Session, league_id: int, season: str):
+    league = session.query(League).filter(League.id == league_id).first()
+    
+    games_played = session.query(func.count(Game.id)).filter(
+        Game.league_id == league_id,
+        Game.season == season
+    ).scalar()
+    
+    total_goals = session.query(
+        func.sum(Game.home_goals + Game.away_goals)
+    ).filter(
+        Game.league_id == league_id,
+        Game.season == season
+    ).scalar() or 0
+    
+    home_wins = session.query(func.count(Game.id)).filter(
+        Game.league_id == league_id,
+        Game.season == season,
+        Game.home_goals > Game.away_goals
+    ).scalar()
+    
+    away_wins = session.query(func.count(Game.id)).filter(
+        Game.league_id == league_id,
+        Game.season == season,
+        Game.away_goals > Game.home_goals
+    ).scalar()
+    
+    draws = session.query(func.count(Game.id)).filter(
+        Game.league_id == league_id,
+        Game.season == season,
+        Game.home_goals == Game.away_goals
+    ).scalar()
+    
+    return {
+        'league': league.name,
+        'season': season,
+        'games_played': games_played,
+        'total_goals': total_goals,
+        'avg_goals_per_game': total_goals / games_played if games_played > 0 else 0,
+        'home_wins': home_wins,
+        'away_wins': away_wins,
+        'draws': draws,
+        'home_win_percentage': (home_wins / games_played * 100) if games_played > 0 else 0
+    }
+
+# Usage
+summary = get_league_season_summary(session, league_id=1, season="2023-24")
+print(f"\n{summary['league']} {summary['season']} Summary:")
+print(f"Games Played: {summary['games_played']}")
+print(f"Total Goals: {summary['total_goals']} (avg {summary['avg_goals_per_game']:.2f} per game)")
+print(f"Home Wins: {summary['home_wins']} ({summary['home_win_percentage']:.1f}%)")
+print(f"Away Wins: {summary['away_wins']}")
+print(f"Draws: {summary['draws']}")
+```
+
+## Data Model Example
+
+```json
+{
+  "id": 1,
+  "name": "Premier League",
+  "up_to_date_season": "2023-24",
+  "up_to_date_match_week": 28
+}
+```
+
+## Related Models
+
+- [Team](/api-reference/models/team) - Teams that belong to this league
+- [Game](/api-reference/models/game) - Games played in this league

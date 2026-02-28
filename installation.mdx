@@ -1,0 +1,440 @@
+---
+title: Installation
+description: Complete installation guide for the Premier League Python library with all optional dependencies
+---
+
+## Requirements
+
+The Premier League library requires Python 3.9 or higher:
+
+```bash
+python --version  # Should be 3.9 or higher
+```
+
+<Info>
+**Supported Python versions:** 3.9, 3.10, 3.11, and 3.12
+</Info>
+
+## Basic installation
+
+Install the core library using pip:
+
+```bash
+pip install premier_league
+```
+
+This installs the base package with all essential dependencies:
+
+- `requests==2.28.1` - HTTP library for data fetching
+- `requests-cache==1.2.1` - Caching layer for API requests
+- `lxml==5.3.1` - XML/HTML parsing
+- `beautifulsoup4==4.12.3` - Web scraping utilities
+- `prettytable==3.11.0` - Console table formatting
+- `PyYAML==6.0.2` - YAML configuration support
+- `pandas==2.2.3` - Data manipulation and analysis
+- `tqdm==4.67.1` - Progress bars
+- `SQLAlchemy==2.0.38` - Database ORM
+- `appdirs==1.4.4` - Platform-specific directory paths
+
+## Optional dependencies
+
+The library provides optional extras for specialized features. Install only what you need:
+
+<CodeGroup>
+```bash PDF Export
+# Enables PDF export functionality
+pip install premier_league[pdf]
+```
+
+```bash Flask API
+# Enables REST API server functionality
+pip install premier_league[api]
+```
+
+```bash AWS Lambda
+# Enables serverless deployment to AWS Lambda
+pip install premier_league[lambda]
+```
+
+```bash All Features
+# Install everything at once
+pip install premier_league[all]
+```
+</CodeGroup>
+
+### PDF export extras
+
+Installing `premier_league[pdf]` adds PDF generation capabilities:
+
+```bash
+pip install premier_league[pdf]
+```
+
+**Includes:**
+- `reportlab==4.0.4` - PDF creation library
+
+**Enables:**
+- `RankingTable.get_ranking_pdf()` - Color-coded standings reports
+- `PlayerSeasonLeaders.get_top_stats_pdf()` - Formatted player statistics
+
+<Note>
+Without the PDF extra, attempting to use PDF export methods will raise an `ImportError` with installation instructions.
+</Note>
+
+### API server extras
+
+Installing `premier_league[api]` adds Flask-based REST API capabilities:
+
+```bash
+pip install premier_league[api]
+```
+
+**Includes:**
+- `flask==3.0.0` - Web framework
+- `flask-caching==2.3.0` - Response caching
+- `flask-cors==5.0.0` - Cross-origin resource sharing
+- `flask-limiter==3.11` - Rate limiting
+- `gunicorn==23.0.0` - Production WSGI server
+
+**Enables:**
+- `run_server()` function for launching API servers
+- Production-ready deployment with Gunicorn
+- Built-in rate limiting and caching
+- CORS configuration
+
+Example usage:
+
+```python
+from premier_league import run_server
+
+# Development mode
+run_server(host="localhost", port=8000, debug=True)
+
+# Production mode with Gunicorn
+run_server(
+    host="0.0.0.0",
+    port=8000,
+    mode="production",
+    workers=4
+)
+```
+
+### Lambda deployment extras
+
+Installing `premier_league[lambda]` adds AWS Lambda deployment capabilities:
+
+```bash
+pip install premier_league[lambda]
+```
+
+**Includes:**
+- `boto3==1.37.18` - AWS SDK for Python
+
+**Enables:**
+- Serverless API deployment to AWS Lambda
+- S3 integration for file exports
+- Pre-configured Serverless Framework configuration
+
+Example deployment:
+
+```bash
+S3_BUCKET_NAME=my-premier-league-bucket python -m premier_league.lambda_functions.deploy_premier_league \
+  --aws-profile my-aws-profile \
+  --region us-east-1
+```
+
+<Warning>
+**Prerequisites for Lambda deployment:**
+- Valid AWS account with IAM credentials
+- S3 bucket created in advance
+- IAM role with `s3:PutObject` and `s3:GetObject` permissions
+- Serverless Framework installed globally:
+  ```bash
+  npm install -g serverless
+  npm install -g serverless-python-requirements
+  ```
+</Warning>
+
+### Install all extras
+
+For complete functionality, install all optional dependencies:
+
+```bash
+pip install premier_league[all]
+```
+
+This is equivalent to installing all extras individually and enables:
+- PDF export methods
+- Flask API server
+- AWS Lambda deployment
+
+## Database initialization
+
+<Steps>
+  <Step title="Automatic setup">
+    The library automatically initializes a local SQLite database on first use:
+
+    ```python
+    from premier_league import MatchStatistics
+
+    # Database is created automatically in user data directory
+    stats = MatchStatistics()
+    ```
+
+    **Default location:**
+    - Linux: `~/.local/share/premier_league_data/premier_league.db`
+    - macOS: `~/Library/Application Support/premier_league_data/premier_league.db`
+    - Windows: `C:\Users\<username>\AppData\Local\premier_league_data\premier_league.db`
+  </Step>
+
+  <Step title="Custom database location">
+    Override the default database path:
+
+    ```python
+    from premier_league import MatchStatistics
+
+    stats = MatchStatistics(
+        db_filename="my_football_data.db",
+        db_directory="custom_directory/my_project"
+    )
+    ```
+
+    <Warning>
+    Changing the database location after initial setup will trigger a new database initialization and SQL dump, creating a separate database.
+    </Warning>
+  </Step>
+
+  <Step title="Database seeding">
+    The database is automatically seeded with:
+
+    - League metadata for all supported leagues
+    - Match history since 2017-2018 season
+    - Team information and relationships
+    - Game statistics with 100+ metrics per match
+
+    **Supported leagues:**
+    - Premier League
+    - La Liga
+    - Serie A
+    - Bundesliga
+    - Ligue 1
+    - EFL Championship
+  </Step>
+</Steps>
+
+## Verifying installation
+
+Test your installation with this quick check:
+
+```python
+from premier_league import (
+    MatchStatistics,
+    RankingTable,
+    PlayerSeasonLeaders,
+    Transfers,
+    run_server
+)
+
+# Test core functionality
+ranking = RankingTable()
+standings = ranking.get_ranking_list()
+print(f"✓ Successfully fetched {len(standings)-1} teams")
+
+scorers = PlayerSeasonLeaders(stat_type='G')
+top_scorers = scorers.get_top_stats_list(limit=5)
+print(f"✓ Retrieved top {len(top_scorers)-1} scorers")
+
+stats = MatchStatistics()
+total_games = stats.get_total_game_count()
+print(f"✓ Database initialized with {total_games} matches")
+
+transfers = Transfers()
+teams = transfers.get_all_current_teams()
+print(f"✓ Found {len(teams)} teams in current season")
+
+print("\n✓ All core features working correctly!")
+```
+
+<Tip>
+If you see all checkmarks, your installation is working correctly!
+</Tip>
+
+## Development installation
+
+For contributing to the library or local development:
+
+```bash
+git clone https://github.com/kayoMichael/premier_league.git
+cd premier_league
+
+# Install in editable mode
+pip install -e .
+
+# Install test dependencies (optional)
+pip install -r requirements-test.txt
+
+# Install pre-commit hooks (optional)
+pip install pre-commit
+pre-commit install
+```
+
+<Info>
+Editable mode (`-e`) allows you to modify the source code and see changes immediately without reinstalling.
+</Info>
+
+## Upgrading
+
+Update to the latest version:
+
+```bash
+pip install --upgrade premier_league
+
+# Or upgrade with specific extras
+pip install --upgrade premier_league[all]
+```
+
+Check your current version:
+
+```python
+import premier_league
+print(premier_league.__version__)
+```
+
+## Uninstalling
+
+Remove the library completely:
+
+```bash
+pip uninstall premier_league
+```
+
+<Note>
+Uninstalling the library does not remove the local database. To completely remove all data, manually delete the database directory shown in the "Automatic setup" section above.
+</Note>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="ImportError: No module named 'premier_league'">
+    Ensure the package is installed in your active Python environment:
+
+    ```bash
+    pip list | grep premier_league
+    ```
+
+    If not found, reinstall:
+
+    ```bash
+    pip install premier_league
+    ```
+  </Accordion>
+
+  <Accordion title="PDF export not working">
+    Install the PDF extra:
+
+    ```bash
+    pip install premier_league[pdf]
+    ```
+
+    Verify installation:
+
+    ```python
+    import reportlab
+    print("PDF support installed")
+    ```
+  </Accordion>
+
+  <Accordion title="run_server() raises ImportError">
+    Install the API extra:
+
+    ```bash
+    pip install premier_league[api]
+    ```
+
+    Verify Flask is installed:
+
+    ```python
+    import flask
+    print(f"Flask version: {flask.__version__}")
+    ```
+  </Accordion>
+
+  <Accordion title="Database initialization fails">
+    Check directory permissions for the data directory. You can specify a custom location with write permissions:
+
+    ```python
+    from premier_league import MatchStatistics
+
+    stats = MatchStatistics(
+        db_filename="premier_league.db",
+        db_directory="~/my_writable_directory"
+    )
+    ```
+  </Accordion>
+
+  <Accordion title="SSL certificate errors when fetching data">
+    This may occur on some systems with strict SSL verification. Update certifi:
+
+    ```bash
+    pip install --upgrade certifi
+    ```
+
+    Or temporarily disable SSL verification (not recommended for production):
+
+    ```python
+    import ssl
+    import requests
+
+    requests.packages.urllib3.disable_warnings()
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## System requirements
+
+### Minimum specifications
+
+- **Python:** 3.9 or higher
+- **Disk space:** ~500 MB (including database)
+- **RAM:** 512 MB minimum
+- **Network:** Internet connection for data fetching
+
+### Recommended specifications
+
+- **Python:** 3.11 or 3.12 (best performance)
+- **Disk space:** 1 GB (for growth and caching)
+- **RAM:** 2 GB or more
+- **Network:** Stable broadband connection
+
+### Platform support
+
+<CardGroup cols={3}>
+  <Card title="Linux" icon="linux">
+    Fully supported on all major distributions (Ubuntu, Debian, Fedora, CentOS)
+  </Card>
+  <Card title="macOS" icon="apple">
+    Supported on macOS 10.14 (Mojave) and later, including Apple Silicon (M1/M2)
+  </Card>
+  <Card title="Windows" icon="windows">
+    Supported on Windows 10 and Windows 11
+  </Card>
+</CardGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Quickstart guide"
+    icon="rocket"
+    href="/quickstart"
+  >
+    Get up and running with your first queries in 5 minutes
+  </Card>
+  <Card
+    title="API reference"
+    icon="book"
+    href="/api-reference"
+  >
+    Explore the complete API documentation
+  </Card>
+</CardGroup>

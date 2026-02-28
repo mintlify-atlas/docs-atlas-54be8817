@@ -1,0 +1,269 @@
+---
+title: Premier League Python Library
+description: A comprehensive Python library for accessing and analyzing data for Europe's top football leagues, including match statistics, player leaders, and transfer information
+---
+
+## Unlock the power of European football data
+
+The Premier League Python library provides a unified interface to access comprehensive football data across Europe's top 5 leagues. Whether you're building machine learning models, analyzing team performance, or creating data-driven applications, this library gives you everything you need.
+
+<CardGroup cols={2}>
+  <Card
+    title="Match statistics"
+    icon="chart-line"
+    href="#match-statistics"
+  >
+    Access detailed match-level statistics with 100+ metrics per game, including xG, passing, defensive actions, and possession data
+  </Card>
+  <Card
+    title="League standings"
+    icon="trophy"
+    href="#league-standings"
+  >
+    Retrieve current and historical league tables with comprehensive team statistics dating back decades
+  </Card>
+  <Card
+    title="Player leaders"
+    icon="star"
+    href="#player-leaders"
+  >
+    Track top scorers and assist providers across all supported leagues with detailed breakdowns
+  </Card>
+  <Card
+    title="Transfer data"
+    icon="right-left"
+    href="#transfer-data"
+  >
+    Monitor incoming and outgoing transfers for every team with historical transfer window data
+  </Card>
+</CardGroup>
+
+## Supported leagues
+
+Access data from Europe's premier football competitions:
+
+- **Premier League** (England)
+- **La Liga** (Spain)
+- **Serie A** (Italy)
+- **Bundesliga** (Germany)
+- **Ligue 1** (France)
+- **EFL Championship** (England)
+
+## Key capabilities
+
+### Machine learning ready
+
+Generate ML-ready datasets with customizable historical aggregation:
+
+```python
+from premier_league import MatchStatistics
+
+stats = MatchStatistics()
+stats.create_dataset(
+    "training_data.csv",
+    lag=10,  # Aggregate last 10 games
+    weights="exp",  # Exponential weighting for recent games
+    params=2.0
+)
+```
+
+The library maintains a SQLite database with complete match history since the 2017-2018 season, featuring detailed statistics broken down by player position (FW, MF, DF, GK).
+
+### Flask API server
+
+Deploy a production-ready REST API in seconds:
+
+```python
+from premier_league import run_server
+
+run_server(
+    host="0.0.0.0",
+    port=8000,
+    mode="production",
+    workers=4
+)
+```
+
+Built-in features include rate limiting, caching, CORS support, and comprehensive endpoints for all data types.
+
+### AWS Lambda deployment
+
+Deploy serverless APIs with pre-configured Lambda functions and S3 integration:
+
+```bash
+S3_BUCKET_NAME=my-bucket python -m premier_league.lambda_functions.deploy_premier_league \
+  --aws-profile my-profile \
+  --region us-east-1
+```
+
+### Multiple export formats
+
+Export data in the format that suits your workflow:
+
+- **CSV** - For spreadsheet analysis
+- **JSON** - For web applications
+- **PDF** - For formatted reports with color-coded sections
+
+## Match statistics
+
+The `MatchStatistics` class provides access to extensive game data with 100+ statistical fields per match:
+
+```python
+from premier_league import MatchStatistics
+from datetime import datetime
+
+stats = MatchStatistics()
+
+# Get team's complete match history
+arsenal_games = stats.get_team_games("Arsenal")
+
+# Query by season and match week
+week_5_games = stats.get_games_by_season("2023-2024", match_week=5)
+
+# Get recent games with detailed stats
+recent = stats.get_games_before_date(
+    date=datetime(2024, 2, 1),
+    limit=10,
+    team="Manchester City"
+)
+
+# Update with latest data
+stats.update_data_set()
+```
+
+**Available metrics include:**
+- Expected Goals (xG, xAG, PSxG)
+- Shooting (total shots, shots on target, shot/goal creating actions)
+- Passing (completion %, progressive passes, key passes)
+- Defensive (tackles, interceptions, blocks, clearances)
+- Possession (touches, carries, take-ons, dribbles)
+- Discipline (fouls, cards, offsides)
+
+All statistics are broken down by position groups (FW, MF, DF) for granular analysis.
+
+## League standings
+
+The `RankingTable` class fetches current and historical league tables:
+
+```python
+from premier_league import RankingTable
+
+# Current Premier League standings
+ranking = RankingTable()
+standings = ranking.get_ranking_list()
+
+# Historical season
+ranking_95 = RankingTable(target_season="1995-1996")
+
+# Different league
+serie_a = RankingTable(league="Serie A")
+
+# Export to various formats
+ranking.get_ranking_csv("standings")
+ranking.get_ranking_json("standings", header="PL_2024")
+ranking.get_ranking_pdf("standings")  # Color-coded with qualification zones
+```
+
+**Historical coverage:**
+- Premier League: from 1947
+- La Liga: from 1929
+- Serie A: from 1929
+- Bundesliga: from 1963
+- Ligue 1: from 1945
+
+## Player leaders
+
+The `PlayerSeasonLeaders` class tracks top performers:
+
+```python
+from premier_league import PlayerSeasonLeaders
+
+# Top scorers
+scorers = PlayerSeasonLeaders(stat_type='G')
+top_10_scorers = scorers.get_top_stats_list(limit=10)
+
+# Top assist providers
+assists = PlayerSeasonLeaders(stat_type='A', target_season='2022-23')
+top_assists = assists.get_top_stats_list(limit=10)
+
+# Different league
+ligue_1_scorers = PlayerSeasonLeaders(stat_type='G', league="Ligue 1")
+
+# Export data
+scorers.get_top_stats_csv("top_scorers", limit=20)
+scorers.get_top_stats_json("top_scorers", header="PL_Scorers")
+scorers.get_top_stats_pdf("top_scorers")  # Top 20 with gold highlighting
+```
+
+Goals data includes in-play goals and penalty breakdowns. Assists data provides clean assist counts with nationality and club information.
+
+## Transfer data
+
+The `Transfers` class provides comprehensive transfer window data:
+
+```python
+from premier_league import Transfers
+
+# Current season transfers
+transfers = Transfers()
+
+# Get all teams for reference
+teams = transfers.get_all_current_teams()
+
+# Incoming transfers
+arsenal_ins = transfers.transfer_in_table("Arsenal")
+
+# Outgoing transfers
+arsenal_outs = transfers.transfer_out_table("Arsenal")
+
+# Pretty print to console
+transfers.print_transfer_table("Arsenal")
+
+# Export with type filtering
+transfers.transfer_csv("Chelsea", "chelsea_transfers", transfer_type="both")
+transfers.transfer_json("Liverpool", "liverpool_ins", transfer_type="in")
+```
+
+**Historical coverage:**
+- Premier League: from 1946
+- La Liga: from 1928
+- Serie A: from 1946
+- Bundesliga: from 1963
+- Ligue 1: from 1945
+
+## Installation extras
+
+The library supports optional dependencies for specialized features:
+
+```bash
+# PDF export functionality
+pip install premier_league[pdf]
+
+# Flask API server
+pip install premier_league[api]
+
+# AWS Lambda deployment
+pip install premier_league[lambda]
+
+# All features
+pip install premier_league[all]
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Quickstart"
+    icon="rocket"
+    href="/quickstart"
+  >
+    Get up and running in 5 minutes with a working example
+  </Card>
+  <Card
+    title="Installation"
+    icon="download"
+    href="/installation"
+  >
+    Detailed installation guide with all optional dependencies
+  </Card>
+</CardGroup>

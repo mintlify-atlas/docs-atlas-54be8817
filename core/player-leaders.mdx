@@ -1,0 +1,674 @@
+---
+title: "Player Leaders"
+description: "Access top goal scorers and assist leaders from Europe's top 5 football leagues"
+---
+
+## Overview
+
+The `PlayerSeasonLeaders` class provides access to top player statistics for goals and assists across the top 5 European football leagues. It enables retrieving, analyzing, and exporting season-leading player data in multiple formats.
+
+<Note>
+This module scrapes historical and current season data for top scorers and assist leaders, supporting seasons dating back to the 1980s-1990s depending on the league.
+</Note>
+
+## Installation
+
+```python
+from premier_league import PlayerSeasonLeaders
+```
+
+## Initialization
+
+```python
+# Top goal scorers
+scorers = PlayerSeasonLeaders(
+    stat_type="G",
+    target_season="2023-2024",
+    league="Premier League",
+    cache=True
+)
+
+# Top assist leaders
+assists = PlayerSeasonLeaders(
+    stat_type="A",
+    target_season="2023-2024",
+    league="La Liga",
+    cache=True
+)
+```
+
+### Parameters
+
+<ParamField path="stat_type" type="Literal['G', 'A']" required>
+  Type of statistic to retrieve:
+  - `"G"`: Goals
+  - `"A"`: Assists
+</ParamField>
+
+<ParamField path="target_season" type="str" default="None">
+  Specific season in format "YYYY-YYYY" (e.g., "2023-2024"). If None, uses current season
+</ParamField>
+
+<ParamField path="league" type="str" default="Premier League">
+  League to scrape data for. Options:
+  - "Premier League" (England)
+  - "La Liga" (Spain)
+  - "Serie A" (Italy)
+  - "Bundesliga" (Germany)
+  - "Ligue 1" (France)
+</ParamField>
+
+<ParamField path="cache" type="bool" default="True">
+  Whether to cache scraped data for faster subsequent loads
+</ParamField>
+
+## Quick Start
+
+<CodeGroup>
+
+```python Goal Scorers
+from premier_league import PlayerSeasonLeaders
+
+# Get current season's top scorers
+scorers = PlayerSeasonLeaders(stat_type="G", league="Premier League")
+top_players = scorers.get_top_stats_list(limit=10)
+
+# Display top 10 scorers
+for player in top_players[1:]:  # Skip header row
+    name, country, club, goals, breakdown = player
+    print(f"{name} ({club}): {goals} goals")
+```
+
+```python Assist Leaders
+from premier_league import PlayerSeasonLeaders
+
+# Get historical assist leaders
+assists = PlayerSeasonLeaders(
+    stat_type="A",
+    league="La Liga",
+    target_season="2019-2020"
+)
+
+top_assists = assists.get_top_stats_list(limit=5)
+print("Top 5 Assist Leaders 2019-2020:")
+for player in top_assists[1:]:
+    name, country, club, assist_count = player
+    print(f"{name} ({club}): {assist_count} assists")
+```
+
+```python Multiple Leagues
+leagues = ["Premier League", "La Liga", "Serie A", "Bundesliga", "Ligue 1"]
+
+print("Top Scorers Across Europe:\n")
+for league in leagues:
+    scorers = PlayerSeasonLeaders(
+        stat_type="G",
+        league=league
+    )
+    top = scorers.get_top_stats_list(limit=1)
+    
+    if len(top) > 1:
+        player_data = top[1]
+        print(f"{league}: {player_data[0]} - {player_data[3]} goals")
+```
+
+</CodeGroup>
+
+## Core Methods
+
+### get_top_stats_list()
+
+Retrieve the processed list of top players and their statistics.
+
+```python
+scorers = PlayerSeasonLeaders(
+    stat_type="G",
+    league="Serie A",
+    target_season="2023-2024"
+)
+
+# Get top 20 scorers
+top_20 = scorers.get_top_stats_list(limit=20)
+
+# First row is headers
+headers = top_20[0]
+print(headers)  # ['Name', 'Country', 'Club', 'Goals', 'In Play Goals+Penalty']
+
+# Subsequent rows are player data
+for player in top_20[1:]:
+    name, country, club, goals, breakdown = player
+    print(f"{name}: {goals} goals for {club}")
+```
+
+#### Parameters
+
+<ParamField path="limit" type="int" default="None">
+  Number of top players to return. If None, returns all available players (up to 100)
+</ParamField>
+
+#### Returns
+
+`List[List[str]]`: Nested list where:
+- First row contains column headers
+- Subsequent rows contain player data
+
+#### Data Structure
+
+<Tabs>
+  <Tab title="Goals (stat_type='G')">
+    Each row contains:
+    - **Name**: Player name
+    - **Country**: Player nationality
+    - **Club**: Current club (may include loan status)
+    - **Goals**: Total goals scored
+    - **In Play Goals+Penalty**: Breakdown of goals from open play vs penalties
+  </Tab>
+  
+  <Tab title="Assists (stat_type='A')">
+    Each row contains:
+    - **Name**: Player name
+    - **Country**: Player nationality
+    - **Club**: Current club (may include loan status)
+    - **Assists**: Total assists provided
+  </Tab>
+</Tabs>
+
+---
+
+### get_top_stats_csv()
+
+Export player statistics to a CSV file.
+
+```python
+scorers = PlayerSeasonLeaders(
+    stat_type="G",
+    league="Bundesliga",
+    target_season="2022-2023"
+)
+
+scorers.get_top_stats_csv(
+    file_name="bundesliga_top_scorers_2022_23",
+    header="Bundesliga Top Scorers 2022-2023",
+    limit=25
+)
+# Creates: bundesliga_top_scorers_2022_23.csv
+```
+
+#### Parameters
+
+<ParamField path="file_name" type="str" required>
+  Name of the CSV file (without .csv extension)
+</ParamField>
+
+<ParamField path="header" type="str" default="None">
+  Optional header text to include at the top of the CSV
+</ParamField>
+
+<ParamField path="limit" type="int" default="None">
+  Number of top players to include. If None, includes all available
+</ParamField>
+
+---
+
+### get_top_stats_json()
+
+Export player statistics to a JSON file.
+
+```python
+assists = PlayerSeasonLeaders(
+    stat_type="A",
+    league="Ligue 1"
+)
+
+assists.get_top_stats_json(
+    file_name="ligue1_assists",
+    header="Top Assist Providers",
+    limit=15
+)
+# Creates: ligue1_assists.json
+```
+
+#### Parameters
+
+<ParamField path="file_name" type="str" required>
+  Name of the JSON file (without .json extension)
+</ParamField>
+
+<ParamField path="header" type="str" default="None">
+  Optional parent key for the JSON structure
+</ParamField>
+
+<ParamField path="limit" type="int" default="None">
+  Number of top players to include
+</ParamField>
+
+---
+
+### get_top_stats_pdf()
+
+Generate a professionally formatted PDF with the top 20 player statistics.
+
+<Warning>
+Requires the optional PDF dependency. Install with: `pip install premier_league[pdf]`
+</Warning>
+
+```python
+scorers = PlayerSeasonLeaders(
+    stat_type="G",
+    league="Premier League",
+    target_season="2023-2024"
+)
+
+scorers.get_top_stats_pdf(
+    file_name="premier_league_golden_boot_race",
+    path="reports"
+)
+# Creates: reports/premier_league_golden_boot_race.pdf
+```
+
+#### Parameters
+
+<ParamField path="file_name" type="str" required>
+  Name of the PDF file (without .pdf extension)
+</ParamField>
+
+<ParamField path="path" type="str" required>
+  Directory path where the PDF will be saved. Created if it doesn't exist
+</ParamField>
+
+#### PDF Features
+
+- Limited to top 20 players + headers (21 rows total)
+- Golden highlighting for the top player
+- Professional table formatting with alternating row colors
+- Centered title with season and statistic type
+- A3 page size for optimal readability
+
+---
+
+## Supported Leagues & Data Availability
+
+<Tabs>
+  <Tab title="Premier League">
+    **Country:** England
+    
+    **Goals (G):**
+    - Available from: 1995-1996 season
+    - Current season supported
+    
+    **Assists (A):**
+    - Available from: 1997-1998 season
+    - Current season supported
+    
+    ```python
+    pl_scorers = PlayerSeasonLeaders(
+        stat_type="G",
+        league="Premier League",
+        target_season="1995-1996"  # First available
+    )
+    ```
+  </Tab>
+  
+  <Tab title="La Liga">
+    **Country:** Spain
+    
+    **Both Goals & Assists:**
+    - Available from: 2008-2009 season
+    - Current season supported
+    
+    ```python
+    laliga_assists = PlayerSeasonLeaders(
+        stat_type="A",
+        league="La Liga",
+        target_season="2008-2009"
+    )
+    ```
+  </Tab>
+  
+  <Tab title="Serie A">
+    **Country:** Italy
+    
+    **Both Goals & Assists:**
+    - Available from: 2010-2011 season
+    - Current season supported
+    
+    ```python
+    seria_a = PlayerSeasonLeaders(
+        stat_type="G",
+        league="Serie A",
+        target_season="2015-2016"
+    )
+    ```
+  </Tab>
+  
+  <Tab title="Bundesliga">
+    **Country:** Germany
+    
+    **Goals (G):**
+    - Available from: 1988-1989 season
+    - Current season supported
+    
+    **Assists (A):**
+    - Available from: 1997-1998 season (same as Premier League)
+    - Current season supported
+    
+    ```python
+    bundesliga = PlayerSeasonLeaders(
+        stat_type="G",
+        league="Bundesliga",
+        target_season="1988-1989"  # First available for goals
+    )
+    ```
+  </Tab>
+  
+  <Tab title="Ligue 1">
+    **Country:** France
+    
+    **Both Goals & Assists:**
+    - Available from: 2010-2011 season
+    - Current season supported
+    
+    ```python
+    ligue1 = PlayerSeasonLeaders(
+        stat_type="A",
+        league="Ligue 1",
+        target_season="2018-2019"
+    )
+    ```
+  </Tab>
+</Tabs>
+
+## Advanced Examples
+
+### Compare Goals vs Assists Leaders
+
+```python
+from premier_league import PlayerSeasonLeaders
+
+season = "2023-2024"
+league = "Premier League"
+
+# Get top scorers
+scorers = PlayerSeasonLeaders(
+    stat_type="G",
+    league=league,
+    target_season=season
+)
+top_scorers = scorers.get_top_stats_list(limit=5)
+
+# Get top assist providers
+assists = PlayerSeasonLeaders(
+    stat_type="A",
+    league=league,
+    target_season=season
+)
+top_assists = assists.get_top_stats_list(limit=5)
+
+print(f"{league} {season}\n")
+print("TOP SCORERS:")
+for player in top_scorers[1:]:
+    print(f"  {player[0]} ({player[2]}): {player[3]} goals")
+
+print("\nTOP ASSIST PROVIDERS:")
+for player in top_assists[1:]:
+    print(f"  {player[0]} ({player[2]}): {player[3]} assists")
+```
+
+### Historical Analysis
+
+```python
+from premier_league import PlayerSeasonLeaders
+import pandas as pd
+
+# Track Bundesliga top scorer over 10 seasons
+historical_data = []
+
+for year in range(2013, 2023):
+    season = f"{year}-{year+1}"
+    
+    scorers = PlayerSeasonLeaders(
+        stat_type="G",
+        league="Bundesliga",
+        target_season=season,
+        cache=True
+    )
+    
+    top_player = scorers.get_top_stats_list(limit=1)
+    
+    if len(top_player) > 1:
+        player_data = top_player[1]
+        historical_data.append({
+            'season': season,
+            'player': player_data[0],
+            'club': player_data[2],
+            'goals': player_data[3]
+        })
+
+df = pd.DataFrame(historical_data)
+print(df)
+print(f"\nAverage goals by top scorer: {df['goals'].astype(int).mean():.1f}")
+```
+
+### Export All Formats
+
+```python
+from premier_league import PlayerSeasonLeaders
+import os
+
+# Create output directory
+os.makedirs("player_stats", exist_ok=True)
+
+league = "La Liga"
+season = "2022-2023"
+
+# Goal scorers
+scorers = PlayerSeasonLeaders(
+    stat_type="G",
+    league=league,
+    target_season=season
+)
+
+base_name = f"{league.lower().replace(' ', '_')}_scorers_{season.replace('-', '_')}"
+
+scorers.get_top_stats_csv(
+    file_name=f"player_stats/{base_name}",
+    header=f"{league} Top Scorers {season}",
+    limit=30
+)
+
+scorers.get_top_stats_json(
+    file_name=f"player_stats/{base_name}",
+    header="top_scorers",
+    limit=30
+)
+
+scorers.get_top_stats_pdf(
+    file_name=base_name,
+    path="player_stats"
+)
+
+print(f"Exported {league} {season} data to player_stats/")
+```
+
+### Multi-League Comparison
+
+```python
+from premier_league import PlayerSeasonLeaders
+import pandas as pd
+
+leagues = [
+    "Premier League",
+    "La Liga",
+    "Serie A",
+    "Bundesliga",
+    "Ligue 1"
+]
+
+season = "2023-2024"
+comparison_data = []
+
+for league in leagues:
+    scorers = PlayerSeasonLeaders(
+        stat_type="G",
+        league=league,
+        target_season=season,
+        cache=True
+    )
+    
+    top = scorers.get_top_stats_list(limit=1)
+    
+    if len(top) > 1:
+        player = top[1]
+        comparison_data.append({
+            'League': league,
+            'Player': player[0],
+            'Club': player[2],
+            'Goals': int(player[3])
+        })
+
+df = pd.DataFrame(comparison_data)
+df = df.sort_values('Goals', ascending=False)
+
+print("Top Scorer by League (2023-2024):\n")
+print(df.to_string(index=False))
+print(f"\nHighest: {df.iloc[0]['Player']} ({df.iloc[0]['League']}) - {df.iloc[0]['Goals']} goals")
+```
+
+### Filter and Analyze
+
+```python
+from premier_league import PlayerSeasonLeaders
+
+# Get all top scorers
+scorers = PlayerSeasonLeaders(
+    stat_type="G",
+    league="Premier League",
+    target_season="2023-2024"
+)
+
+all_scorers = scorers.get_top_stats_list()  # No limit = all players
+
+# Filter players from a specific club
+club_filter = "Arsenal"
+arsenal_scorers = [
+    player for player in all_scorers[1:]
+    if club_filter in player[2]
+]
+
+print(f"{club_filter} Goal Scorers:")
+for player in arsenal_scorers:
+    print(f"  {player[0]}: {player[3]} goals")
+
+# Find players with 20+ goals
+high_scorers = [
+    player for player in all_scorers[1:]
+    if int(player[3]) >= 20
+]
+
+print(f"\nPlayers with 20+ goals: {len(high_scorers)}")
+for player in high_scorers:
+    print(f"  {player[0]} ({player[2]}): {player[3]} goals")
+```
+
+### Generate League Report
+
+```python
+from premier_league import PlayerSeasonLeaders
+import os
+from datetime import datetime
+
+def generate_league_report(league, season):
+    """Generate comprehensive PDF reports for both goals and assists"""
+    
+    report_dir = f"reports/{league.replace(' ', '_').lower()}"
+    os.makedirs(report_dir, exist_ok=True)
+    
+    # Goals report
+    print(f"Generating goals report for {league} {season}...")
+    scorers = PlayerSeasonLeaders(
+        stat_type="G",
+        league=league,
+        target_season=season
+    )
+    scorers.get_top_stats_pdf(
+        file_name=f"goals_{season.replace('-', '_')}",
+        path=report_dir
+    )
+    
+    # Assists report
+    print(f"Generating assists report for {league} {season}...")
+    assists = PlayerSeasonLeaders(
+        stat_type="A",
+        league=league,
+        target_season=season
+    )
+    assists.get_top_stats_pdf(
+        file_name=f"assists_{season.replace('-', '_')}",
+        path=report_dir
+    )
+    
+    print(f"✓ Reports saved to {report_dir}/")
+
+# Generate for current season
+generate_league_report("Premier League", "2023-2024")
+generate_league_report("La Liga", "2023-2024")
+```
+
+## Working with Club Transfers
+
+```python
+from premier_league import PlayerSeasonLeaders
+
+# Get top scorers
+scorers = PlayerSeasonLeaders(
+    stat_type="G",
+    league="Serie A",
+    target_season="2023-2024"
+)
+
+top_players = scorers.get_top_stats_list(limit=30)
+
+# Identify players on loan (club field contains comma)
+loaned_players = [
+    player for player in top_players[1:]
+    if ',' in player[2]
+]
+
+if loaned_players:
+    print("Top scorers currently on loan:")
+    for player in loaned_players:
+        print(f"  {player[0]}: {player[2]} - {player[3]} goals")
+```
+
+## Error Handling
+
+```python
+from premier_league import PlayerSeasonLeaders
+
+try:
+    # Attempting to access data before availability
+    old_data = PlayerSeasonLeaders(
+        stat_type="A",
+        league="Serie A",
+        target_season="2000-2001"  # Before 2010-2011 limit
+    )
+except Exception as e:
+    print(f"Error: Season not available - {e}")
+
+try:
+    # Invalid stat type
+    invalid = PlayerSeasonLeaders(
+        stat_type="X",  # Must be 'G' or 'A'
+        league="Premier League"
+    )
+except Exception as e:
+    print(f"Error: Invalid stat type - {e}")
+```
+
+<Tip>
+Use `cache=True` to cache scraped data and significantly improve performance when accessing the same season multiple times.
+</Tip>
+
+<Info>
+The module automatically handles multi-word club names and special characters in player names and nationalities.
+</Info>

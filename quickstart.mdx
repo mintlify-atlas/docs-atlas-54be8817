@@ -1,80 +1,220 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get started with the Premier League Python library in minutes
 ---
 
-## Get started in three steps
+Get up and running with the Premier League library in under 5 minutes.
 
-Get your documentation site running locally and make your first customization.
+## Installation
 
-### Step 1: Set up your local environment
+Install the library using pip:
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+<CodeGroup>
+```bash pip
+pip install premier_league
+```
 
-### Step 2: Deploy your changes
+```bash pip with extras
+# Install with PDF export support
+pip install premier_league[pdf]
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+# Install with Flask API support
+pip install premier_league[api]
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+# Install everything
+pip install premier_league[all]
+```
+</CodeGroup>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+The library automatically initializes a local SQLite database on first use.
 
-### Step 3: Go live
+## Your first queries
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+<Steps>
+  <Step title="Fetch league standings">
+    Get the current Premier League table:
+
+    ```python
+    from premier_league import RankingTable
+
+    # Get current season standings
+    ranking = RankingTable()
+    standings = ranking.get_ranking_list()
+
+    # Display top 5 teams
+    print(standings[0])  # Header row
+    for team in standings[1:6]:
+        print(team)
+    ```
+
+    **Output:**
+    ```
+    ['Position', 'Team', 'MP', 'W', 'D', 'L', 'GF', 'GA', 'GD', 'Points']
+    ['1', 'Manchester City', '38', '32', '4', '2', '102', '31', '71', '100']
+    ['2', 'Arsenal', '38', '28', '5', '5', '88', '43', '45', '89']
+    ...
+    ```
+  </Step>
+
+  <Step title="Query player statistics">
+    Get the top goalscorers:
+
+    ```python
+    from premier_league import PlayerSeasonLeaders
+
+    # Get top 10 goalscorers
+    scorers = PlayerSeasonLeaders(stat_type='G')
+    top_scorers = scorers.get_top_stats_list(limit=10)
+
+    # Display results
+    for player in top_scorers[1:]:  # Skip header
+        print(f"{player[0]} ({player[2]}): {player[3]} goals")
+    ```
+
+    **Output:**
+    ```
+    Erling Haaland (Manchester City): 36 goals
+    Harry Kane (Tottenham Hotspur): 30 goals
+    Ivan Toney (Brentford): 20 goals
+    ...
+    ```
+  </Step>
+
+  <Step title="Access match statistics">
+    Get detailed match data for analysis:
+
+    ```python
+    from premier_league import MatchStatistics
+    from datetime import datetime
+
+    # Initialize match statistics
+    stats = MatchStatistics()
+
+    # Get Arsenal's recent games
+    arsenal_games = stats.get_team_games("Arsenal")
+
+    # Get games before a specific date
+    recent_games = stats.get_games_before_date(
+        date=datetime(2024, 2, 1),
+        limit=5,
+        team="Liverpool"
+    )
+
+    print(f"Found {len(arsenal_games)} Arsenal games")
+    ```
+  </Step>
+
+  <Step title="Check transfer activity">
+    View player transfers for a team:
+
+    ```python
+    from premier_league import Transfers
+
+    # Initialize transfers for current season
+    transfers = Transfers()
+
+    # Get Chelsea's incoming transfers
+    chelsea_ins = transfers.transfer_in_table("Chelsea")
+
+    # Display transfers
+    print(chelsea_ins[0])  # Header
+    for transfer in chelsea_ins[1:]:
+        print(transfer)
+    ```
+  </Step>
+</Steps>
+
+## Multi-league support
+
+The library supports data from multiple European leagues:
+
+<Tabs>
+  <Tab title="Premier League">
+    ```python
+    from premier_league import RankingTable
+
+    ranking = RankingTable(league="Premier League")
+    standings = ranking.get_ranking_list()
+    ```
+  </Tab>
+
+  <Tab title="La Liga">
+    ```python
+    from premier_league import RankingTable
+
+    ranking = RankingTable(league="La Liga")
+    standings = ranking.get_ranking_list()
+    ```
+  </Tab>
+
+  <Tab title="Serie A">
+    ```python
+    from premier_league import RankingTable
+
+    ranking = RankingTable(league="Serie A")
+    standings = ranking.get_ranking_list()
+    ```
+  </Tab>
+
+  <Tab title="Bundesliga">
+    ```python
+    from premier_league import RankingTable
+
+    ranking = RankingTable(league="Bundesliga")
+    standings = ranking.get_ranking_list()
+    ```
+  </Tab>
+</Tabs>
+
+## Export data
+
+All modules support exporting data in multiple formats:
+
+```python
+from premier_league import RankingTable, PlayerSeasonLeaders
+
+# Export standings to CSV
+ranking = RankingTable()
+ranking.get_ranking_csv("standings_2024", header="Premier League 2023-24")
+
+# Export top scorers to JSON
+scorers = PlayerSeasonLeaders(stat_type='G')
+scorers.get_top_stats_json("top_scorers", header="Goals_2024")
+
+# Export to PDF (requires premier_league[pdf])
+ranking.get_ranking_pdf("standings_2024")
+```
+
+## Update data
+
+Keep your local database current with the latest matches:
+
+```python
+from premier_league import MatchStatistics
+
+stats = MatchStatistics()
+
+# Update with latest match data
+stats.update_data_set()
+```
+
+<Warning>
+The `update_data_set()` method takes considerable time due to rate limiting (4 seconds between requests) to respect data source restrictions.
+</Warning>
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Core modules" icon="cube" href="/core/match-statistics">
+    Explore MatchStatistics, RankingTable, PlayerSeasonLeaders, and Transfers
+  </Card>
+  <Card title="Machine learning" icon="brain" href="/guides/machine-learning">
+    Create ML-ready datasets with lag-based features
+  </Card>
+  <Card title="Flask API" icon="server" href="/flask-api/introduction">
+    Deploy as a REST API with rate limiting and caching
+  </Card>
+  <Card title="Data export" icon="file-export" href="/guides/data-export">
+    Export data to CSV, JSON, and PDF formats
+  </Card>
 </CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>

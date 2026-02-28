@@ -1,0 +1,497 @@
+---
+title: "AWS Lambda Deployment"
+description: "Deploy the Premier League API to AWS Lambda using the Serverless Framework"
+---
+
+## Overview
+
+Deploy the Premier League API as serverless functions on AWS Lambda. This deployment method provides automatic scaling, pay-per-use pricing, and zero server management. All file exports (CSV, JSON, PDF) are automatically saved to Amazon S3.
+
+## Architecture
+
+The Lambda deployment includes three separate functions:
+
+- **PlayersPremierLeagueData**: Handles player statistics endpoints (`/player_ranking`, `/player_csv`, `/player_json`, `/player_pdf`)
+- **RankingPremierLeagueData**: Handles ranking endpoints (`/ranking`, `/ranking_csv`, `/ranking_json`, `/ranking_pdf`)
+- **TransferPremierLeagueData**: Handles transfer endpoints (`/transfers_in`, `/transfers_out`, `/transfers_csv`, `/transfers_json`)
+
+Each function is configured with:
+- **Runtime**: Python 3.11
+- **Timeout**: 30 seconds
+- **Memory**: 1024 MB
+- **API Gateway**: HTTP events for RESTful access
+
+Reference: `premier_league/lambda_functions/serverless.yml:25-112`
+
+## Prerequisites
+
+Before deploying, ensure you have:
+
+<Steps>
+  <Step title="AWS Account">
+    Create an AWS account if you don't have one: [aws.amazon.com](https://aws.amazon.com)
+  </Step>
+
+  <Step title="IAM Permissions">
+    Configure IAM user/role with the following permissions:
+    
+    ```json
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "s3:PutObject",
+            "s3:GetObject"
+          ],
+          "Resource": "arn:aws:s3:::your-bucket-name/*"
+        }
+      ]
+    }
+    ```
+    
+    These permissions allow Lambda functions to read and write files to S3.
+  </Step>
+
+  <Step title="S3 Bucket">
+    Create an S3 bucket in the AWS Console:
+    
+    1. Go to S3 service in AWS Console
+    2. Click "Create bucket"
+    3. Choose a unique name (e.g., `premier-league-exports`)
+    4. Select your preferred region
+    5. Configure settings (default settings work fine)
+    6. Click "Create bucket"
+  </Step>
+
+  <Step title="Install Serverless Framework">
+    Install the Serverless Framework and required plugins globally:
+    
+    ```bash
+    npm install -g serverless
+    npm install -g serverless-python-requirements
+    ```
+  </Step>
+
+  <Step title="Install Premier League Library">
+    Install the library with Lambda support:
+    
+    ```bash
+    pip install premier_league[lambda]
+    ```
+  </Step>
+</Steps>
+
+## Deployment
+
+### Quick Deploy
+
+Deploy with a single command using the built-in deployment script:
+
+```bash
+S3_BUCKET_NAME=your-bucket-name python -m premier_league.lambda_functions.deploy_premier_league \
+  --aws-profile your-aws-profile \
+  --region us-east-1
+```
+
+**Parameters:**
+
+- `S3_BUCKET_NAME`: Your S3 bucket name (defaults to `premier-league-bucket` if not specified)
+- `--aws-profile`: AWS CLI profile name (optional, uses default profile if not specified)
+- `--region`: AWS region (e.g., `us-east-1`, `eu-west-1`, `ca-central-1`)
+
+Reference: `premier_league/lambda_functions/deploy_premier_league.py:13-23`
+
+### Deployment Examples
+
+<CodeGroup>
+```bash Default Profile
+# Deploy using default AWS profile
+S3_BUCKET_NAME=my-premier-league-bucket python -m premier_league.lambda_functions.deploy_premier_league \
+  --region us-east-1
+```
+
+```bash Named Profile
+# Deploy using specific AWS profile
+S3_BUCKET_NAME=my-premier-league-bucket python -m premier_league.lambda_functions.deploy_premier_league \
+  --aws-profile production \
+  --region eu-west-1
+```
+
+```bash Canada Region
+# Deploy to Canada Central region
+S3_BUCKET_NAME=my-premier-league-bucket python -m premier_league.lambda_functions.deploy_premier_league \
+  --aws-profile my-profile \
+  --region ca-central-1
+```
+</CodeGroup>
+
+### Deployment Output
+
+After successful deployment, you'll receive API endpoint URLs:
+
+```bash
+Service Information
+service: Premier_League_Data_Tool
+stage: dev
+region: us-east-1
+stack: Premier_League_Data_Tool-dev
+resources: 15
+api keys:
+  None
+endpoints:
+  GET - https://xxxxxxxxxx.execute-api.us-east-1.amazonaws.com/dev/player_ranking
+  GET - https://xxxxxxxxxx.execute-api.us-east-1.amazonaws.com/dev/ranking
+  GET - https://xxxxxxxxxx.execute-api.us-east-1.amazonaws.com/dev/transfers_in
+  ...
+functions:
+  PlayersPremierLeagueData: Premier_League_Data_Tool-dev-PlayersPremierLeagueData
+  RankingPremierLeagueData: Premier_League_Data_Tool-dev-RankingPremierLeagueData
+  TransferPremierLeagueData: Premier_League_Data_Tool-dev-TransferPremierLeagueData
+```
+
+<Note>
+Save these endpoint URLs - you'll need them to interact with your deployed API.
+</Note>
+
+## Serverless Configuration
+
+The deployment uses a pre-configured `serverless.yml` file with the following structure:
+
+```yaml
+service: Premier_League_Data_Tool
+
+provider:
+  name: aws
+  region: ca-central-1
+  stage: ${opt:stage, 'dev'}
+  iamRoleStatements:
+    - Effect: 'Allow'
+      Action:
+        - s3:PutObject
+        - s3:GetObject
+  environment:
+    S3_BUCKET_NAME: ${env:S3_BUCKET_NAME, 'premier-league-bucket'}
+```
+
+**Key Configuration:**
+
+- **Service Name**: `Premier_League_Data_Tool`
+- **Default Region**: `ca-central-1` (can be overridden with `--region`)
+- **Stage**: `dev` (can be customized with `--stage` flag)
+- **IAM Role**: Automatically grants S3 read/write permissions
+- **Environment Variable**: `S3_BUCKET_NAME` passed to all Lambda functions
+
+Reference: `premier_league/lambda_functions/serverless.yml:1-13`
+
+## Lambda Function Details
+
+### Player Statistics Function
+
+**Handler**: `src/player_lambda.lambda_handler`
+
+**Endpoints**:
+- `GET /player_ranking` - Get player statistics as JSON
+- `GET /player_csv` - Export to CSV (saves to S3)
+- `PUT /player_json` - Export to JSON (saves to S3)
+- `GET /player_pdf` - Export to PDF (saves to S3)
+
+**Query Parameters**:
+- `season` - Target season (e.g., "2023-2024")
+- `stat_type` - "G" for goals or "A" for assists
+- `filename` - Required for export endpoints
+- `limit` - Maximum number of results
+- `header` - Custom header for exports
+- `league` - Target league name
+
+Reference: `premier_league/lambda_functions/src/player_lambda.py:63-79`
+
+### Ranking Function
+
+**Handler**: `src/ranking_lambda.lambda_handler`
+
+**Endpoints**:
+- `GET /ranking` - Get league standings
+- `GET /ranking_csv` - Export to CSV (saves to S3)
+- `PUT /ranking_json` - Export to JSON (saves to S3)
+- `GET /ranking_pdf` - Export to PDF (saves to S3)
+
+### Transfer Function
+
+**Handler**: `src/transfers_lambda.lambda_handler`
+
+**Endpoints**:
+- `GET /transfers_in` - Get incoming transfers
+- `GET /transfers_out` - Get outgoing transfers
+- `PUT /transfers_csv` - Export to CSV (saves to S3)
+- `GET /transfers_json` - Export to JSON (saves to S3)
+
+Reference: `premier_league/lambda_functions/serverless.yml:26-78`
+
+## S3 File Storage
+
+All exported files (CSV, JSON, PDF) are automatically saved to your configured S3 bucket. The Lambda functions handle the upload process:
+
+```python
+S3_BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
+
+# Example: Export CSV to S3
+export_to_csv(filename, data, header=header)
+save_to_s3(f"{filename}.csv", S3_BUCKET_NAME)
+```
+
+**File Naming Convention**:
+- Files use the `filename` parameter from your request
+- Extensions are added automatically (`.csv`, `.json`, `.pdf`)
+- Files are stored at the root level of your bucket
+
+Reference: `premier_league/lambda_functions/src/player_lambda.py:12,42-43`
+
+### Accessing Exported Files
+
+<Tabs>
+  <Tab title="AWS Console">
+    1. Open AWS S3 Console
+    2. Navigate to your bucket
+    3. Find and download the exported file
+  </Tab>
+  
+  <Tab title="AWS CLI">
+    ```bash
+    # List files in bucket
+    aws s3 ls s3://your-bucket-name/
+    
+    # Download a specific file
+    aws s3 cp s3://your-bucket-name/top_scorers.csv ./
+    ```
+  </Tab>
+  
+  <Tab title="boto3 (Python)">
+    ```python
+    import boto3
+    
+    s3 = boto3.client('s3')
+    
+    # Download file
+    s3.download_file(
+        'your-bucket-name',
+        'top_scorers.csv',
+        'local_file.csv'
+    )
+    ```
+  </Tab>
+</Tabs>
+
+## Testing the Deployment
+
+Test your deployed endpoints using cURL or any HTTP client:
+
+```bash
+# Get top scorers
+curl "https://xxxxxxxxxx.execute-api.us-east-1.amazonaws.com/dev/player_ranking?stat_type=G&limit=10"
+
+# Get league rankings
+curl "https://xxxxxxxxxx.execute-api.us-east-1.amazonaws.com/dev/ranking?season=2023-2024"
+
+# Export to CSV (saves to S3)
+curl -X GET "https://xxxxxxxxxx.execute-api.us-east-1.amazonaws.com/dev/player_csv?stat_type=G&filename=scorers&limit=20"
+
+# Get transfers
+curl "https://xxxxxxxxxx.execute-api.us-east-1.amazonaws.com/dev/transfers_in?team=Arsenal&season=2023-2024"
+```
+
+## Managing the Deployment
+
+### Update Deployment
+
+Redeploy after making changes:
+
+```bash
+S3_BUCKET_NAME=your-bucket-name python -m premier_league.lambda_functions.deploy_premier_league \
+  --aws-profile your-profile \
+  --region us-east-1
+```
+
+Serverless Framework performs incremental updates automatically.
+
+### Remove Deployment
+
+Remove all Lambda functions and API Gateway resources:
+
+```bash
+serverless remove \
+  --config ~/.../premier_league/lambda_functions/serverless.yml \
+  --aws-profile your-profile \
+  --region us-east-1
+```
+
+<Warning>
+This removes the Lambda functions and API endpoints but does **not** delete your S3 bucket or its contents.
+</Warning>
+
+### View Logs
+
+View function logs using AWS CLI:
+
+```bash
+# View player function logs
+serverless logs -f PlayersPremierLeagueData --tail
+
+# View ranking function logs
+serverless logs -f RankingPremierLeagueData --tail
+
+# View transfer function logs
+serverless logs -f TransferPremierLeagueData --tail
+```
+
+## Cost Optimization
+
+<AccordionGroup>
+  <Accordion title="Lambda Pricing" icon="dollar-sign">
+    AWS Lambda pricing is based on:
+    
+    - **Requests**: $0.20 per 1M requests
+    - **Duration**: $0.0000166667 per GB-second
+    
+    With 1024 MB memory and 30s timeout:
+    - ~$0.0005 per request
+    - AWS Free Tier: 1M requests/month + 400,000 GB-seconds/month
+    
+    Most users stay within free tier limits.
+  </Accordion>
+
+  <Accordion title="S3 Storage Costs" icon="database">
+    S3 Standard pricing:
+    
+    - **Storage**: $0.023 per GB/month
+    - **PUT requests**: $0.005 per 1,000 requests
+    - **GET requests**: $0.0004 per 1,000 requests
+    
+    Exported files are typically small (< 1 MB), resulting in minimal costs.
+  </Accordion>
+
+  <Accordion title="Optimization Tips" icon="lightbulb">
+    - Set up S3 lifecycle policies to delete old exports
+    - Use S3 Intelligent-Tiering for infrequently accessed files
+    - Monitor CloudWatch metrics to identify unused functions
+    - Consider reducing memory allocation if functions don't need 1024 MB
+    - Implement caching to reduce duplicate API calls
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Deployment fails with credentials error">
+    **Error**: `AWS credentials not found`
+    
+    **Solution**: Configure AWS credentials:
+    
+    ```bash
+    aws configure --profile your-profile
+    ```
+    
+    Enter your AWS Access Key ID, Secret Access Key, and default region.
+  </Accordion>
+
+  <Accordion title="S3 bucket access denied">
+    **Error**: `Access Denied` when uploading to S3
+    
+    **Solution**: Verify your IAM role has the required S3 permissions:
+    
+    1. Check the IAM role attached to Lambda
+    2. Ensure it has `s3:PutObject` and `s3:GetObject` permissions
+    3. Verify the bucket name in the environment variable matches your actual bucket
+  </Accordion>
+
+  <Accordion title="Function timeout errors">
+    **Error**: `Task timed out after 30.00 seconds`
+    
+    **Solution**: Increase the timeout in `serverless.yml`:
+    
+    ```yaml
+    functions:
+      PlayersPremierLeagueData:
+        timeout: 60  # Increase to 60 seconds
+    ```
+    
+    Then redeploy.
+  </Accordion>
+
+  <Accordion title="Package size too large">
+    **Error**: `Deployment package size exceeds limit`
+    
+    **Solution**: The `serverless-python-requirements` plugin handles this automatically by:
+    
+    - Using slim versions of packages
+    - Excluding unnecessary files
+    - Compressing the deployment package
+    
+    If issues persist, consider using Lambda Layers for large dependencies.
+  </Accordion>
+</AccordionGroup>
+
+## Advanced Configuration
+
+### Custom Stage Deployment
+
+```bash
+S3_BUCKET_NAME=prod-bucket python -m premier_league.lambda_functions.deploy_premier_league \
+  --aws-profile production \
+  --region us-east-1 \
+  --stage production
+```
+
+### Environment-Specific Buckets
+
+```bash
+# Development
+S3_BUCKET_NAME=dev-premier-league python -m premier_league.lambda_functions.deploy_premier_league \
+  --region us-east-1 --stage dev
+
+# Production
+S3_BUCKET_NAME=prod-premier-league python -m premier_league.lambda_functions.deploy_premier_league \
+  --region us-east-1 --stage prod
+```
+
+### Custom Domain Names
+
+To use a custom domain:
+
+1. Set up a domain in Route 53 or your DNS provider
+2. Create an ACM certificate
+3. Add custom domain configuration to `serverless.yml`:
+
+```yaml
+custom:
+  customDomain:
+    domainName: api.yourdomain.com
+    certificateName: '*.yourdomain.com'
+    basePath: 'premier-league'
+    stage: ${self:provider.stage}
+    createRoute53Record: true
+```
+
+4. Install the serverless domain manager plugin:
+
+```bash
+npm install -g serverless-domain-manager
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Local Deployment" icon="laptop" href="/flask-api/deployment/local">
+    Run the API locally for development and testing
+  </Card>
+  <Card title="API Endpoints" icon="code" href="/flask-api/endpoints/players">
+    Explore available API endpoints and parameters
+  </Card>
+  <Card title="AWS Lambda Docs" icon="book" href="https://docs.aws.amazon.com/lambda">
+    Learn more about AWS Lambda
+  </Card>
+  <Card title="Serverless Framework" icon="server" href="https://www.serverless.com/framework/docs">
+    Deep dive into Serverless Framework
+  </Card>
+</CardGroup>

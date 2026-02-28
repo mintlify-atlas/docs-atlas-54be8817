@@ -1,0 +1,378 @@
+---
+title: 'PlayerSeasonLeaders'
+description: 'Scrape and process top player statistics (goals or assists) for a season in Top 5 European Leagues'
+---
+
+## Overview
+
+The `PlayerSeasonLeaders` class provides methods to retrieve, process, and export player statistics (goals or assists) in various formats for the Top 5 European Leagues.
+
+## Constructor
+
+### PlayerSeasonLeaders
+
+```python
+PlayerSeasonLeaders(
+    stat_type: Literal["G", "A"],
+    target_season: Optional[str] = None,
+    league: Optional[str] = "Premier League",
+    cache: Optional[bool] = True
+)
+```
+
+Initialize the PlayerSeasonLeaders object.
+
+<ParamField path="stat_type" type="Literal['G', 'A']" required>
+  The type of statistic to scrape:
+  - `"G"`: Goals
+  - `"A"`: Assists
+</ParamField>
+
+<ParamField path="target_season" type="str" default="None">
+  The specific season to scrape data for (e.g., "2023-2024"). If not provided, the current season is used
+</ParamField>
+
+<ParamField path="league" type="str" default="Premier League">
+  The league to scrape data for. Supported leagues:
+  - "Premier League"
+  - "La Liga"
+  - "Serie A"
+  - "Ligue 1"
+  - "Bundesliga"
+</ParamField>
+
+<ParamField path="cache" type="bool" default="True">
+  Whether to cache scraped data
+</ParamField>
+
+#### Example
+
+```python
+from premier_league import PlayerSeasonLeaders
+
+# Get top goal scorers for current Premier League season
+goal_leaders = PlayerSeasonLeaders(stat_type="G")
+
+# Get top assist providers for La Liga 2022-23
+assist_leaders = PlayerSeasonLeaders(
+    stat_type="A",
+    target_season="2022-2023",
+    league="La Liga"
+)
+
+# Disable caching
+leaders = PlayerSeasonLeaders(stat_type="G", cache=False)
+```
+
+---
+
+## Methods
+
+### get_top_stats_list
+
+```python
+get_top_stats_list(
+    limit: int = None
+) -> list
+```
+
+Get the processed list of top players and their statistics.
+
+<ParamField path="limit" type="int" default="None">
+  The number of top players to include. If None, returns all available players (up to 100)
+</ParamField>
+
+<ResponseField name="return" type="list">
+  A list of lists containing player statistics. The first row contains headers, subsequent rows contain player data
+</ResponseField>
+
+#### Data Structure
+
+For goals (`stat_type="G"`):
+```python
+[
+    ["Name", "Country", "Club", "Goals", "In Play Goals+Penalty"],
+    ["Player Name", "Country", "Club Name", "20", "15+5"],
+    ...
+]
+```
+
+For assists (`stat_type="A"`):
+```python
+[
+    ["Name", "Country", "Club", "Assists"],
+    ["Player Name", "Country", "Club Name", "15"],
+    ...
+]
+```
+
+#### Example
+
+```python
+leaders = PlayerSeasonLeaders(stat_type="G")
+
+# Get all players
+all_players = leaders.get_top_stats_list()
+
+# Get top 10 players
+top_10 = leaders.get_top_stats_list(limit=10)
+
+for player in top_10[1:]:
+    print(f"{player[0]}: {player[3]} goals")
+```
+
+---
+
+### get_top_stats_csv
+
+```python
+get_top_stats_csv(
+    file_name: str,
+    header: str = None,
+    limit: int = None
+) -> None
+```
+
+Export the top statistics to a CSV file.
+
+<ParamField path="file_name" type="str" required>
+  The name of the file to save (without extension)
+</ParamField>
+
+<ParamField path="header" type="str" default="None">
+  Optional header for the CSV file
+</ParamField>
+
+<ParamField path="limit" type="int" default="None">
+  The number of top players to include. If None, includes all players
+</ParamField>
+
+<ResponseField name="return" type="None">
+  This method doesn't return a value. It creates a CSV file
+</ResponseField>
+
+#### Example
+
+```python
+leaders = PlayerSeasonLeaders(stat_type="G", league="Premier League")
+
+# Export all goal scorers
+leaders.get_top_stats_csv("all_scorers")
+
+# Export top 20 with custom header
+leaders.get_top_stats_csv(
+    "top_20_scorers",
+    header="2023-24 Premier League Top Scorers",
+    limit=20
+)
+```
+
+---
+
+### get_top_stats_json
+
+```python
+get_top_stats_json(
+    file_name: str,
+    header: str = None,
+    limit: int = None
+) -> None
+```
+
+Export the top statistics to a JSON file.
+
+<ParamField path="file_name" type="str" required>
+  The name of the file to save (without extension)
+</ParamField>
+
+<ParamField path="header" type="str" default="None">
+  Optional header for the JSON file
+</ParamField>
+
+<ParamField path="limit" type="int" default="None">
+  The number of top players to include. If None, includes all players
+</ParamField>
+
+<ResponseField name="return" type="None">
+  This method doesn't return a value. It creates a JSON file
+</ResponseField>
+
+#### Example
+
+```python
+leaders = PlayerSeasonLeaders(stat_type="A", league="Serie A")
+
+# Export top 15 assist leaders to JSON
+leaders.get_top_stats_json(
+    "serie_a_assists",
+    header="Serie A Assist Leaders",
+    limit=15
+)
+```
+
+---
+
+### get_top_stats_pdf
+
+```python
+get_top_stats_pdf(
+    file_name: str,
+    path: str
+) -> None
+```
+
+Export the top 20 player statistics to a PDF file. Requires `premier_league[pdf]` to be installed.
+
+This method creates a formatted PDF with a title, table of statistics, and styling to enhance readability. The top scorer/assist provider is highlighted in gold.
+
+<ParamField path="file_name" type="str" required>
+  The name of the file to save (without extension)
+</ParamField>
+
+<ParamField path="path" type="str" required>
+  The directory path to save the PDF file
+</ParamField>
+
+<ResponseField name="return" type="None">
+  This method doesn't return a value. It creates a PDF file
+</ResponseField>
+
+#### PDF Features
+
+- Displays top 20 players (header row + 21 data rows)
+- Top player highlighted with gold background
+- Centered title with league and season information
+- Professional table styling with borders and padding
+
+#### Exceptions
+
+Raises `Exception` if PDF creation fails
+
+#### Example
+
+```python
+leaders = PlayerSeasonLeaders(
+    stat_type="G",
+    league="Premier League",
+    target_season="2023-2024"
+)
+
+leaders.get_top_stats_pdf(
+    file_name="premier_league_scorers",
+    path="output/pdfs"
+)
+```
+
+---
+
+### find_season_limit
+
+```python
+find_season_limit() -> int
+```
+
+Find the season limit for the given league and stat type. This represents the earliest season with available data.
+
+<ResponseField name="return" type="int">
+  The earliest year with data for the league and stat type
+</ResponseField>
+
+#### Season Limits by League and Stat Type
+
+**Goals (G)**:
+- Premier League: 1995
+- La Liga: 2008
+- Serie A: 2010
+- Ligue 1: 2010
+- Bundesliga: 1988
+
+**Assists (A)**:
+- Premier League: 1997
+- La Liga: 2008
+- Serie A: 2010
+- Ligue 1: 2010
+- Bundesliga: 1988
+
+#### Example
+
+```python
+leaders = PlayerSeasonLeaders(stat_type="G", league="Bundesliga")
+limit = leaders.find_season_limit()
+print(f"Earliest season: {limit}")  # 1988
+```
+
+---
+
+## Attributes
+
+### league
+
+```python
+league: str
+```
+
+The league name.
+
+---
+
+### stat_type
+
+```python
+stat_type: Literal["G", "A"]
+```
+
+The type of statistic being tracked ("G" for goals, "A" for assists).
+
+---
+
+### season
+
+```python
+season: str
+```
+
+The current or target season in "YYYY-YYYY" format.
+
+---
+
+### stat_url
+
+```python
+stat_url: str
+```
+
+The URL being scraped for player statistics.
+
+---
+
+## Data Processing
+
+The class automatically:
+
+1. **Cleans raw data**: Removes season markers, numbering, and irrelevant text
+2. **Handles multi-word club names**: Properly parses club names that contain commas or multiple words
+3. **Structures data**: Organizes player information into consistent rows
+4. **Separates goal types**: For goals, distinguishes between total goals and the breakdown of in-play vs penalty goals
+
+---
+
+## Dependencies
+
+### Optional Dependencies
+
+To use the PDF export functionality, install the package with PDF support:
+
+```bash
+pip install premier_league[pdf]
+```
+
+This installs the `reportlab` library required for PDF generation.
+
+---
+
+## Usage Notes
+
+- The limit parameter in `get_top_stats_list()` applies to data rows only (header is always included)
+- Maximum of 100 players can be retrieved (this is typically more than enough as most seasons have fewer top scorers/assists tracked)
+- For goals, the data includes both total goals and a breakdown showing in-play goals and penalties
+- Club names with special characters or multiple parts are handled automatically

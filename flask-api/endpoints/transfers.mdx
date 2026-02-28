@@ -1,0 +1,428 @@
+---
+title: 'Transfer Endpoints'
+description: 'API endpoints for retrieving Premier League transfer data and team information'
+---
+
+## Overview
+
+The Transfer endpoints provide access to Premier League transfer data, including incoming and outgoing transfers for specific teams. You can retrieve all teams in a season and export transfer data in various formats.
+
+## Get All Teams
+
+<CodeGroup>
+```bash GET /all_teams
+curl "http://localhost:5000/all_teams?season=2023-2024&league=Premier%20League"
+```
+</CodeGroup>
+
+Retrieve a list of all teams in the Premier League for a given season.
+
+### Query Parameters
+
+<ParamField query="season" type="string" optional>
+  Filter results by season. Format: `YYYY-YYYY` (e.g., `2023-2024`)
+  
+  Defaults to current season if not specified.
+</ParamField>
+
+<ParamField query="league" type="string" optional default="Premier League">
+  Filter results by league name.
+  
+  Supported values: `Premier League`, `La Liga`, `Serie A`, `Ligue 1`, `Bundesliga`
+</ParamField>
+
+### Response
+
+<ResponseField name="response" type="array">
+  Array of team names or team objects
+</ResponseField>
+
+<ResponseExample>
+```json 200 Success
+[
+  "Arsenal",
+  "Aston Villa",
+  "Bournemouth",
+  "Brentford",
+  "Brighton & Hove Albion",
+  "Chelsea",
+  "Crystal Palace",
+  "Everton",
+  "Fulham",
+  "Liverpool",
+  "Luton Town",
+  "Manchester City",
+  "Manchester United",
+  "Newcastle United",
+  "Nottingham Forest",
+  "Sheffield United",
+  "Tottenham Hotspur",
+  "West Ham United",
+  "Wolverhampton Wanderers"
+]
+```
+
+```json 400 Invalid Season
+{
+  "error": "Season format must be YYYY-YYYY"
+}
+```
+</ResponseExample>
+
+---
+
+## Get Incoming Transfers
+
+<CodeGroup>
+```bash GET /transfers/in
+curl "http://localhost:5000/transfers/in?team=Chelsea&season=2023-2024&league=Premier%20League"
+```
+</CodeGroup>
+
+Retrieve all players transferred into a specific team.
+
+### Query Parameters
+
+<ParamField query="team" type="string" required>
+  Team name or identifier.
+  
+  Must match exactly with team names from `/all_teams` endpoint. Case-sensitive.
+</ParamField>
+
+<ParamField query="season" type="string" optional>
+  Filter results by season. Format: `YYYY-YYYY` (e.g., `2023-2024`)
+  
+  Defaults to current season if not specified.
+</ParamField>
+
+<ParamField query="league" type="string" optional default="Premier League">
+  Filter results by league name.
+</ParamField>
+
+### Response
+
+<ResponseField name="response" type="array">
+  Array of transfer objects with player and transfer details
+  
+  <Expandable title="Transfer Object">
+    <ResponseField name="Player" type="string">
+      Player's full name
+    </ResponseField>
+    
+    <ResponseField name="Position" type="string">
+      Player's position (e.g., Forward, Midfielder, Defender, Goalkeeper)
+    </ResponseField>
+    
+    <ResponseField name="From" type="string">
+      Previous club name
+    </ResponseField>
+    
+    <ResponseField name="Fee" type="string">
+      Transfer fee (e.g., "£50m", "Free", "Loan")
+    </ResponseField>
+    
+    <ResponseField name="Date" type="string">
+      Transfer date
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+```json 200 Success
+[
+  {
+    "Player": "Cole Palmer",
+    "Position": "Forward",
+    "From": "Manchester City",
+    "Fee": "£42.5m",
+    "Date": "01/09/2023"
+  },
+  {
+    "Player": "Moises Caicedo",
+    "Position": "Midfielder",
+    "From": "Brighton & Hove Albion",
+    "Fee": "£100m",
+    "Date": "14/08/2023"
+  },
+  {
+    "Player": "Romeo Lavia",
+    "Position": "Midfielder",
+    "From": "Southampton",
+    "Fee": "£58m",
+    "Date": "18/08/2023"
+  }
+]
+```
+
+```json 400 Missing Team
+{
+  "error": "Missing team parameter"
+}
+```
+
+```json 404 Team Not Found
+{
+  "error": "No Team by the name of Chelsea United exists in the 2023-2024 Premier League Season. For all teams in the 2023-2024 season, please invoke /all_teams."
+}
+```
+</ResponseExample>
+
+---
+
+## Get Outgoing Transfers
+
+<CodeGroup>
+```bash GET /transfers/out
+curl "http://localhost:5000/transfers/out?team=Chelsea&season=2023-2024&league=Premier%20League"
+```
+</CodeGroup>
+
+Retrieve all players transferred out from a specific team.
+
+### Query Parameters
+
+<ParamField query="team" type="string" required>
+  Team name or identifier.
+  
+  Must match exactly with team names from `/all_teams` endpoint. Case-sensitive.
+</ParamField>
+
+<ParamField query="season" type="string" optional>
+  Filter results by season. Format: `YYYY-YYYY` (e.g., `2023-2024`)
+  
+  Defaults to current season if not specified.
+</ParamField>
+
+<ParamField query="league" type="string" optional default="Premier League">
+  Filter results by league name.
+</ParamField>
+
+### Response
+
+<ResponseField name="response" type="array">
+  Array of transfer objects with player and transfer details
+  
+  <Expandable title="Transfer Object">
+    <ResponseField name="Player" type="string">
+      Player's full name
+    </ResponseField>
+    
+    <ResponseField name="Position" type="string">
+      Player's position (e.g., Forward, Midfielder, Defender, Goalkeeper)
+    </ResponseField>
+    
+    <ResponseField name="To" type="string">
+      Destination club name
+    </ResponseField>
+    
+    <ResponseField name="Fee" type="string">
+      Transfer fee (e.g., "£50m", "Free", "Loan")
+    </ResponseField>
+    
+    <ResponseField name="Date" type="string">
+      Transfer date
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+```json 200 Success
+[
+  {
+    "Player": "Mason Mount",
+    "Position": "Midfielder",
+    "To": "Manchester United",
+    "Fee": "£55m",
+    "Date": "05/07/2023"
+  },
+  {
+    "Player": "Kai Havertz",
+    "Position": "Forward",
+    "To": "Arsenal",
+    "Fee": "£65m",
+    "Date": "28/06/2023"
+  },
+  {
+    "Player": "Mateo Kovacic",
+    "Position": "Midfielder",
+    "To": "Manchester City",
+    "Fee": "£25m",
+    "Date": "27/06/2023"
+  }
+]
+```
+
+```json 400 Missing Team
+{
+  "error": "Missing team parameter"
+}
+```
+
+```json 404 Team Not Found
+{
+  "error": "No Team by the name of Chelsea United exists in the 2023-2024 Premier League Season. For all teams in the 2023-2024 season, please invoke /all_teams."
+}
+```
+</ResponseExample>
+
+---
+
+## Export Transfers to CSV
+
+<CodeGroup>
+```bash GET /transfers/csv_file
+curl "http://localhost:5000/transfers/csv_file?team=Chelsea&filename=chelsea_transfers&transfer_type=both&season=2023-2024" \
+  -o chelsea_transfers.csv
+```
+</CodeGroup>
+
+Export transfer data for a specific team to a CSV file.
+
+### Query Parameters
+
+<ParamField query="team" type="string" required>
+  Team name or identifier.
+  
+  Must match exactly with team names from `/all_teams` endpoint.
+</ParamField>
+
+<ParamField query="filename" type="string" required>
+  Name for the exported file (without extension).
+  
+  The filename will be sanitized for security. Special characters and path separators will be removed.
+</ParamField>
+
+<ParamField query="transfer_type" type="string" optional default="both">
+  Type of transfers to include in the export.
+  
+  Accepted values:
+  - `in` - Only incoming transfers
+  - `out` - Only outgoing transfers
+  - `both` - Both incoming and outgoing transfers (default)
+</ParamField>
+
+<ParamField query="season" type="string" optional>
+  Filter results by season. Format: `YYYY-YYYY` (e.g., `2023-2024`)
+</ParamField>
+
+<ParamField query="league" type="string" optional default="Premier League">
+  Filter results by league name.
+</ParamField>
+
+### Response
+
+<ResponseField name="file" type="file">
+  CSV file download with `text/csv` MIME type.
+  
+  The file contains transfer data with columns depending on transfer type:
+  - Incoming: Player, Position, From, Fee, Date
+  - Outgoing: Player, Position, To, Fee, Date
+</ResponseField>
+
+### Error Responses
+
+<ResponseExample>
+```json 400 Missing Team
+{
+  "error": "Missing team parameter"
+}
+```
+
+```json 400 Missing Filename
+{
+  "error": "Missing filename parameter"
+}
+```
+
+```json 400 Invalid Type
+{
+  "error": "Invalid type parameter"
+}
+```
+
+```json 404 Team Not Found
+{
+  "error": "No Team by the name of Chelsea United exists in the 2023-2024 Premier League Season. For all teams in the 2023-2024 season, please invoke /all_teams."
+}
+```
+</ResponseExample>
+
+---
+
+## Export Transfers to JSON
+
+<CodeGroup>
+```bash GET /transfers/json_file
+curl "http://localhost:5000/transfers/json_file?team=Chelsea&filename=chelsea_transfers&transfer_type=both&season=2023-2024" \
+  -o chelsea_transfers.json
+```
+</CodeGroup>
+
+Export transfer data for a specific team to a JSON file.
+
+### Query Parameters
+
+<ParamField query="team" type="string" required>
+  Team name or identifier.
+  
+  Must match exactly with team names from `/all_teams` endpoint.
+</ParamField>
+
+<ParamField query="filename" type="string" required>
+  Name for the exported file (without extension).
+  
+  The filename will be sanitized for security. Special characters and path separators will be removed.
+</ParamField>
+
+<ParamField query="transfer_type" type="string" optional default="both">
+  Type of transfers to include in the export.
+  
+  Accepted values:
+  - `in` - Only incoming transfers
+  - `out` - Only outgoing transfers
+  - `both` - Both incoming and outgoing transfers (default)
+</ParamField>
+
+<ParamField query="season" type="string" optional>
+  Filter results by season. Format: `YYYY-YYYY` (e.g., `2023-2024`)
+</ParamField>
+
+<ParamField query="league" type="string" optional default="Premier League">
+  Filter results by league name.
+</ParamField>
+
+### Response
+
+<ResponseField name="file" type="file">
+  JSON file download with `application/json` MIME type.
+  
+  The file contains transfer data as an array of objects with player and transfer details.
+</ResponseField>
+
+### Error Responses
+
+<ResponseExample>
+```json 400 Missing Team
+{
+  "error": "Missing team parameter"
+}
+```
+
+```json 400 Missing Filename
+{
+  "error": "Missing filename parameter"
+}
+```
+
+```json 400 Invalid Type
+{
+  "error": "Invalid type parameter"
+}
+```
+
+```json 404 Team Not Found
+{
+  "error": "No Team by the name of Chelsea United exists in the 2023-2024 Premier League Season. For all teams in the 2023-2024 season, please invoke /all_teams."
+}
+```
+</ResponseExample>

@@ -1,0 +1,446 @@
+---
+title: "Match Statistics"
+description: "Scrape, process, and analyze detailed match statistics for machine learning and data analysis"
+---
+
+## Overview
+
+The `MatchStatistics` class provides comprehensive access to match data from top European football leagues. It handles scraping game statistics, team performance metrics, and enables dataset creation for machine learning purposes.
+
+<Note>
+The `MatchStatistics` module stores data in a local SQLite database and can export datasets with customizable lag windows and weighting strategies for time-series analysis.
+</Note>
+
+## Installation
+
+```python
+from premier_league import MatchStatistics
+```
+
+## Initialization
+
+```python
+stats = MatchStatistics(
+    db_filename="premier_league.db",  # Database file name
+    db_directory="data"                # Directory to store the database
+)
+```
+
+### Parameters
+
+<ParamField path="db_filename" type="str" default="premier_league.db">
+  Name of the SQLite database file to store match data
+</ParamField>
+
+<ParamField path="db_directory" type="str" default="data">
+  Directory path where the database will be stored
+</ParamField>
+
+## Core Methods
+
+### update_data_set()
+
+Updates the database with the latest match data from all supported leagues. This method automatically detects new matches and scrapes their detailed statistics.
+
+```python
+stats = MatchStatistics()
+stats.update_data_set()
+```
+
+<Warning>
+This method can take considerable time to complete due to rate limiting restrictions when scraping multiple matches.
+</Warning>
+
+**Process:**
+- Determines current season based on system date
+- Constructs URLs for matches needing updates
+- Scrapes new match data and player statistics
+- Updates league information with latest season and match week
+
+---
+
+### create_dataset()
+
+Creates a CSV file containing game statistics optimized for machine learning training. Supports lag-based feature engineering and custom weighting strategies.
+
+```python
+stats.create_dataset(
+    output_path="training_data.csv",
+    rows_count=1000,
+    lag=10,
+    weights="exp",
+    params=0.95
+)
+```
+
+#### Parameters
+
+<ParamField path="output_path" type="str" required>
+  File path where the CSV dataset will be saved
+</ParamField>
+
+<ParamField path="rows_count" type="int" default="None">
+  Maximum number of rows to include. If specified, returns the last n rows after sorting by date
+</ParamField>
+
+<ParamField path="lag" type="int" default="10">
+  Number of previous games to use for calculating team statistics. For example, lag=10 means current row uses the team's past 10-game average
+</ParamField>
+
+<ParamField path="weights" type="Literal['lin', 'exp']" default="None">
+  Weighting strategy for historical games:
+  - `"lin"`: Linear weights (more recent games weighted higher)
+  - `"exp"`: Exponential weights (requires params argument)
+  - `None`: Equal weights for all games
+</ParamField>
+
+<ParamField path="params" type="float" default="None">
+  Parameter for exponential weighting strategy. Required when weights="exp"
+</ParamField>
+
+#### Examples
+
+<Tabs>
+  <Tab title="Basic Dataset">
+    ```python
+    # Create dataset with last 500 games, using 5-game averages
+    stats = MatchStatistics()
+    stats.create_dataset(
+        output_path="matches.csv",
+        rows_count=500,
+        lag=5
+    )
+    ```
+  </Tab>
+  <Tab title="Exponential Weighting">
+    ```python
+    # Use exponential decay to give more weight to recent games
+    stats.create_dataset(
+        output_path="weighted_data.csv",
+        lag=10,
+        weights="exp",
+        params=0.9  # Decay factor
+    )
+    ```
+  </Tab>
+  <Tab title="Linear Weighting">
+    ```python
+    # Linear weighting: most recent game has weight 10, oldest has weight 1
+    stats.create_dataset(
+        output_path="linear_weighted.csv",
+        lag=10,
+        weights="lin"
+    )
+    ```
+  </Tab>
+</Tabs>
+
+<Info>
+The dataset includes home and away team statistics with features like xG, shots, passes, tackles, possession, and 50+ other metrics grouped by player position (FW, MF, DF, GK).
+</Info>
+
+---
+
+### get_team_games()
+
+Retrieve all games for a specific team across all seasons.
+
+```python
+team_games = stats.get_team_games("Arsenal")
+
+# Each game includes full relationships
+for game in team_games:
+    print(f"{game['home_team']['name']} vs {game['away_team']['name']}")
+    print(f"Score: {game['home_goals']}-{game['away_goals']}")
+```
+
+#### Parameters
+
+<ParamField path="team_name" type="str" required>
+  Name of the team to retrieve games for
+</ParamField>
+
+#### Returns
+
+`List[dict]`: List of game dictionaries with full relationship data (home_team, away_team, game_stats)
+
+#### Raises
+
+`ValueError`: If no team is found with the specified name
+
+---
+
+### get_games_by_season()
+
+Retrieve all games for a specific season and match week.
+
+```python
+# Get all games from Match Week 10 of the 2023-2024 season
+games = stats.get_games_by_season(
+    season="2023-2024",
+    match_week=10
+)
+
+for game in games:
+    print(f"Match Week {game['match_week']}: {game['home_team']['name']} vs {game['away_team']['name']}")
+```
+
+#### Parameters
+
+<ParamField path="season" type="str" required>
+  Season in format "YYYY-YYYY" (e.g., "2023-2024")
+</ParamField>
+
+<ParamField path="match_week" type="int" required>
+  Match week number to filter games
+</ParamField>
+
+#### Returns
+
+`List[dict]`: List of games with full relationship data
+
+#### Raises
+
+- `ValueError`: If season format is invalid (must be "YYYY-YYYY")
+- `ValueError`: If no games found for the specified season and match week
+
+---
+
+### get_games_before_date()
+
+Retrieve games before a specific date, optionally filtered by team.
+
+```python
+from datetime import datetime
+
+# Get last 5 Manchester City games before a specific date
+recent_games = stats.get_games_before_date(
+    date=datetime(2024, 1, 15),
+    limit=5,
+    team="Manchester City"
+)
+```
+
+#### Parameters
+
+<ParamField path="date" type="datetime" required>
+  Reference date to search before
+</ParamField>
+
+<ParamField path="limit" type="int" default="10">
+  Maximum number of games to return
+</ParamField>
+
+<ParamField path="team" type="str" default="None">
+  Team name to filter games. If None, returns games from all teams
+</ParamField>
+
+#### Returns
+
+`List[dict]`: List of games ordered by date descending
+
+---
+
+### get_future_match()
+
+Retrieve the next upcoming match for a specific league or team.
+
+```python
+# Get next Premier League match
+next_match = stats.get_future_match(league="Premier League")
+
+if isinstance(next_match, dict):
+    print(f"Next match: {next_match['home_team'].name} vs {next_match['away_team'].name}")
+else:
+    print(next_match)  # Season finished message
+
+# Get next match for a specific team
+lfc_next = stats.get_future_match(
+    league="Premier League",
+    team="Liverpool"
+)
+```
+
+#### Parameters
+
+<ParamField path="league" type="str" required>
+  League name (e.g., "Premier League", "La Liga", "Serie A")
+</ParamField>
+
+<ParamField path="team" type="str" default="None">
+  Optional team name to filter for that team's next match
+</ParamField>
+
+#### Returns
+
+`Dict` or `str`: Dictionary with home_team and away_team objects, or a message string if season is finished
+
+---
+
+### get_all_leagues()
+
+Get all available leagues in the database.
+
+```python
+leagues = stats.get_all_leagues()
+print(leagues)  # ['Premier League', 'La Liga', 'Serie A', ...]
+```
+
+#### Returns
+
+`List[str]`: List of all league names
+
+---
+
+### get_all_teams()
+
+Get all teams across all leagues in the database.
+
+```python
+teams = stats.get_all_teams()
+print(f"Total teams: {len(teams)}")
+```
+
+#### Returns
+
+`List[str]`: List of all team names
+
+---
+
+### get_total_game_count()
+
+Get the total number of games stored in the database.
+
+```python
+total = stats.get_total_game_count()
+print(f"Total games in database: {total}")
+```
+
+#### Returns
+
+`int`: Total number of games
+
+## Supported Leagues
+
+The module supports the following leagues:
+
+<AccordionGroup>
+  <Accordion title="Premier League" icon="flag-uk">
+    English top-flight football league
+    - **Available from:** 2018-2019 season onwards
+    - **Teams:** 20
+    - **Match weeks:** 38
+  </Accordion>
+  
+  <Accordion title="La Liga" icon="flag">
+    Spanish top-flight football league
+    - **Available from:** 2018-2019 season onwards
+    - **Teams:** 20
+    - **Match weeks:** 38
+  </Accordion>
+  
+  <Accordion title="Serie A" icon="flag">
+    Italian top-flight football league
+    - **Available from:** 2018-2019 season onwards
+    - **Teams:** 20
+    - **Match weeks:** 38
+  </Accordion>
+  
+  <Accordion title="Bundesliga" icon="flag">
+    German top-flight football league (Fußball-Bundesliga)
+    - **Available from:** 2018-2019 season onwards
+    - **Teams:** 18
+    - **Match weeks:** 34
+  </Accordion>
+  
+  <Accordion title="Ligue 1" icon="flag">
+    French top-flight football league
+    - **Available from:** 2018-2019 season onwards
+    - **Teams:** 18
+    - **Match weeks:** 34
+  </Accordion>
+</AccordionGroup>
+
+## Complete Example
+
+```python
+from premier_league import MatchStatistics
+from datetime import datetime
+
+# Initialize
+stats = MatchStatistics(
+    db_filename="football.db",
+    db_directory="data"
+)
+
+# Update with latest data
+stats.update_data_set()
+
+# Get all available leagues
+leagues = stats.get_all_leagues()
+print(f"Available leagues: {leagues}")
+
+# Get specific team's games
+arsenal_games = stats.get_team_games("Arsenal")
+print(f"Arsenal has {len(arsenal_games)} games in database")
+
+# Get games from specific match week
+mw5_games = stats.get_games_by_season(
+    season="2024-2025",
+    match_week=5
+)
+
+# Create ML dataset with exponential weighting
+stats.create_dataset(
+    output_path="ml_training_data.csv",
+    rows_count=5000,
+    lag=10,
+    weights="exp",
+    params=0.95
+)
+
+# Check next match
+next_match = stats.get_future_match(
+    league="Premier League",
+    team="Chelsea"
+)
+
+if isinstance(next_match, dict):
+    print(f"Chelsea's next match: {next_match['home_team'].name} vs {next_match['away_team'].name}")
+```
+
+## Data Structure
+
+The CSV dataset includes the following columns:
+
+<Tabs>
+  <Tab title="Game Information">
+    - `game_id`: Unique game identifier
+    - `date`: Match date and time
+    - `season`: Season (e.g., "2023-2024")
+    - `match_week`: Week number
+    - `home_team`, `away_team`: Team names
+    - `home_team_id`, `away_team_id`: Team IDs
+  </Tab>
+  
+  <Tab title="Team Statistics">
+    For both home and away teams, prefixed with `home_` or `away_`:
+    - `xG`, `xAG`: Expected goals and assists
+    - `shots_total_FW/MF/DF`: Shots by position
+    - `shots_on_target_FW/MF/DF`: Shots on target
+    - `passes_completed_FW/MF/DF`: Completed passes
+    - `tackles_won_FW/MF/DF`: Tackles won
+    - `possession_rate`: Possession percentage
+    - And 40+ more metrics...
+  </Tab>
+  
+  <Tab title="Target Variables">
+    Located at the end of each row:
+    - `home_goals`: Goals scored by home team
+    - `away_goals`: Goals scored by away team
+  </Tab>
+</Tabs>
+
+<Tip>
+When using `create_dataset()`, rows with insufficient historical data (less than the specified lag) are automatically dropped to ensure data quality.
+</Tip>

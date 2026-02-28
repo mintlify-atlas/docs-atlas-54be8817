@@ -1,0 +1,273 @@
+---
+title: Flask API Overview
+description: A production-ready REST API for accessing Premier League data including player statistics, team rankings, and transfer information
+---
+
+The Premier League Python library includes a comprehensive Flask-based REST API that provides programmatic access to all library features. The API is designed for production use with built-in rate limiting, caching, and CORS support.
+
+## Key Features
+
+The Flask API provides enterprise-grade features out of the box:
+
+- **RESTful Architecture**: Clean, intuitive endpoints following REST principles
+- **Rate Limiting**: Configurable request throttling to prevent abuse (default: 100 requests/minute)
+- **Response Caching**: Built-in caching system to improve performance and reduce load
+- **CORS Support**: Cross-Origin Resource Sharing enabled for web applications
+- **Multiple Export Formats**: JSON, CSV, and PDF file exports for data portability
+- **Production Ready**: Gunicorn integration for production deployments
+- **Flexible Configuration**: YAML, dictionary, or environment variable configuration
+
+## API Endpoints
+
+The API is organized into three main blueprint categories:
+
+### Player Statistics
+
+<CardGroup cols={2}>
+  <Card title="Goals" icon="futbol">
+    `/players/goals` - Get top goalscorers with filtering by season and league
+  </Card>
+  <Card title="Assists" icon="handshake">
+    `/players/assists` - Get top assist providers with comprehensive stats
+  </Card>
+</CardGroup>
+
+Export endpoints: `/players/goals/csv_file`, `/players/goals/json_file`, `/players/assists/csv_file`, `/players/assists/json_file`
+
+### Team Rankings
+
+<CardGroup cols={2}>
+  <Card title="Full Standings" icon="ranking-star">
+    `/ranking` - Complete league table with detailed team statistics
+  </Card>
+  <Card title="Table View" icon="table">
+    `/ranking/table` - Simplified standings focused on essential stats
+  </Card>
+</CardGroup>
+
+Export endpoints: `/ranking/csv_file`, `/ranking/json_file`, `/ranking/pdf_file`
+
+### Transfer Data
+
+<CardGroup cols={2}>
+  <Card title="Team List" icon="users">
+    `/all_teams` - Get all teams in the league for a season
+  </Card>
+  <Card title="Transfers" icon="arrow-right-arrow-left">
+    `/transfers/in`, `/transfers/out` - Track incoming and outgoing transfers
+  </Card>
+</CardGroup>
+
+Export endpoints: `/transfers/csv_file`, `/transfers/json_file`
+
+## Architecture
+
+### Application Factory Pattern
+
+The API uses Flask's application factory pattern for flexible configuration:
+
+```python
+from premier_league.api.app import create_app
+from premier_league.api.config.config import ServerConfig
+
+# Create app with custom configuration
+config = ServerConfig(HOST="0.0.0.0", PORT=8000, DEBUG=True)
+app, config = create_app(config)
+```
+
+See `app.py:33` for the `create_app` function implementation.
+
+### Blueprint Structure
+
+Endpoints are organized into three Flask blueprints for modularity:
+
+- **players_bp** (`routes/players.py:7`) - Player statistics endpoints
+- **transfer_bp** (`routes/transfer.py:9`) - Transfer data endpoints  
+- **ranking_bp** (`routes/ranking.py:7`) - League standings endpoints
+
+### Middleware Stack
+
+The API automatically configures essential middleware:
+
+1. **CORS** (`app.py:61`) - Configurable cross-origin support
+2. **Cache** (`app.py:62`) - Response caching with configurable timeout
+3. **Rate Limiter** (`app.py:63-67`) - Request throttling per IP address
+
+## Configuration System
+
+The `ServerConfig` class provides flexible configuration management:
+
+### Configuration Options
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `HOST` | str | `"0.0.0.0"` | Server bind address |
+| `PORT` | int | `3000` | Server port number |
+| `DEBUG` | bool | `False` | Enable Flask debug mode |
+| `SECRET_KEY` | str | `"default-secret-key"` | Flask secret key for sessions |
+| `CORS_ORIGINS` | list | `["*"]` | Allowed CORS origins |
+| `JSON_SORT_KEYS` | bool | `False` | Sort JSON response keys |
+| `RATE_LIMIT` | int | `100` | Requests per minute limit |
+| `CACHE_TYPE` | str | `"simple"` | Cache backend type |
+| `CACHE_DEFAULT_TIMEOUT` | int | `300` | Cache timeout in seconds |
+| `LOG_LEVEL` | str | `"INFO"` | Logging level |
+
+See `config/config.py:8-21` for the complete ServerConfig dataclass.
+
+### Configuration Methods
+
+The ServerConfig class supports multiple configuration sources:
+
+**From Dictionary:**
+```python
+config = ServerConfig.from_dict({
+    "HOST": "localhost",
+    "PORT": 8080,
+    "DEBUG": True,
+    "RATE_LIMIT": 200
+})
+```
+
+**From YAML File:**
+```python
+# config.yaml
+HOST: 0.0.0.0
+PORT: 8000
+DEBUG: false
+RATE_LIMIT: 150
+CORS_ORIGINS:
+  - https://example.com
+  - https://app.example.com
+
+# Python code
+config = ServerConfig.from_yaml("config.yaml")
+```
+
+**From Environment Variables:**
+```bash
+export PREMIER_LEAGUE_HOST=0.0.0.0
+export PREMIER_LEAGUE_PORT=8000
+export PREMIER_LEAGUE_DEBUG=false
+export PREMIER_LEAGUE_RATE_LIMIT=150
+```
+
+```python
+config = ServerConfig.from_env()
+```
+
+See `config/config.py:24-56` for configuration loading implementations.
+
+## Rate Limiting
+
+The API implements IP-based rate limiting using Flask-Limiter:
+
+- **Default Limit**: 100 requests per minute per IP address
+- **Customizable**: Configure via `RATE_LIMIT` parameter
+- **Automatic**: Applied to all endpoints by default
+- **IP Detection**: Uses `get_remote_address` for client identification
+
+Example with custom rate limit:
+
+```python
+config = ServerConfig(RATE_LIMIT=200)  # 200 requests/minute
+app, config = create_app(config)
+```
+
+Implementation at `app.py:63-67`.
+
+## Caching Strategy
+
+Response caching reduces load and improves performance:
+
+- **Cache Type**: Simple in-memory cache (configurable)
+- **Default Timeout**: 300 seconds (5 minutes)
+- **Cache Backends**: Supports Redis, Memcached, filesystem, etc.
+
+Example with Redis cache:
+
+```python
+config = ServerConfig(
+    CACHE_TYPE="redis",
+    CACHE_DEFAULT_TIMEOUT=600  # 10 minutes
+)
+app, config = create_app(config)
+```
+
+Cache configuration at `app.py:54-55` and `app.py:62`.
+
+## CORS Configuration
+
+Cross-Origin Resource Sharing is enabled for web applications:
+
+- **Default**: All origins allowed (`["*"]`)
+- **Production**: Specify exact origins for security
+- **Automatic**: Configured during app creation
+
+Example with restricted origins:
+
+```python
+config = ServerConfig(
+    CORS_ORIGINS=[
+        "https://yourapp.com",
+        "https://api.yourapp.com"
+    ]
+)
+app, config = create_app(config)
+```
+
+CORS setup at `app.py:61`.
+
+## Production Deployment
+
+The API includes Gunicorn integration for production use:
+
+```python
+from premier_league import run_server
+
+# Run in production mode with 4 workers
+run_server(
+    host="0.0.0.0",
+    port=8000,
+    mode="production",
+    workers=4
+)
+```
+
+The `StandaloneGunicornApp` class (`app.py:17-30`) wraps Gunicorn for production deployments with:
+- Multiple worker processes
+- Sync worker class
+- 120-second timeout
+- App preloading for faster worker startup
+
+See `app.py:112-119` for Gunicorn configuration.
+
+## Error Handling
+
+All endpoints return consistent error responses:
+
+**400 Bad Request** - Invalid parameters:
+```json
+{
+  "error": "Missing team parameter"
+}
+```
+
+**500 Internal Server Error** - Server errors are logged with configurable log levels.
+
+## Security Features
+
+- **Filename Sanitization**: All file export endpoints use `secure_filename` to prevent directory traversal attacks
+- **Request Validation**: Query parameters are validated before processing
+- **Rate Limiting**: Prevents abuse and DoS attacks
+- **CORS Configuration**: Control which origins can access the API
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart Guide" icon="rocket" href="/flask-api/quickstart">
+    Get the API running locally in minutes
+  </Card>
+  <Card title="API Reference" icon="book" href="/api-reference">
+    Explore detailed endpoint documentation
+  </Card>
+</CardGroup>

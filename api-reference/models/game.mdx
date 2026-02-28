@@ -1,0 +1,226 @@
+---
+title: Game
+description: SQLAlchemy model representing a Premier League game
+---
+
+## Overview
+
+The `Game` model represents a single Premier League match between two teams. It stores match results, team information, and scheduling details. This model is central to the library's data structure, connecting teams, leagues, and game statistics.
+
+## Model Definition
+
+**Table Name:** `game`
+
+**Location:** `premier_league/data/models/game.py:7`
+
+## Fields
+
+<ResponseField name="id" type="String" required>
+  Unique identifier for the game. Primary key.
+</ResponseField>
+
+<ResponseField name="home_team_id" type="String" required>
+  Foreign key reference to the home team. Links to `team.id`.
+</ResponseField>
+
+<ResponseField name="away_team_id" type="String" required>
+  Foreign key reference to the away team. Links to `team.id`.
+</ResponseField>
+
+<ResponseField name="league_id" type="Integer" required>
+  Foreign key reference to the league. Links to `league.id`.
+</ResponseField>
+
+<ResponseField name="home_goals" type="Integer">
+  Number of goals scored by the home team.
+</ResponseField>
+
+<ResponseField name="away_goals" type="Integer">
+  Number of goals scored by the away team.
+</ResponseField>
+
+<ResponseField name="home_team_points" type="Integer">
+  Points awarded to the home team (3 for win, 1 for draw, 0 for loss).
+</ResponseField>
+
+<ResponseField name="away_team_points" type="Integer">
+  Points awarded to the away team (3 for win, 1 for draw, 0 for loss).
+</ResponseField>
+
+<ResponseField name="date" type="DateTime">
+  Date and time when the game was played. Indexed for efficient querying.
+</ResponseField>
+
+<ResponseField name="match_week" type="Integer">
+  The match week number in the season. Indexed for efficient querying.
+</ResponseField>
+
+<ResponseField name="season" type="String">
+  The season identifier (e.g., "2023-24").
+</ResponseField>
+
+## Relationships
+
+<ResponseField name="home_team" type="Team">
+  SQLAlchemy relationship to the home `Team` object. Defined with `foreign_keys=[home_team_id]` and back-populates `home_games` on the Team model.
+</ResponseField>
+
+<ResponseField name="away_team" type="Team">
+  SQLAlchemy relationship to the away `Team` object. Defined with `foreign_keys=[away_team_id]` and back-populates `away_games` on the Team model.
+</ResponseField>
+
+<ResponseField name="league" type="League">
+  SQLAlchemy relationship to the `League` object. Back-populates `games` on the League model.
+</ResponseField>
+
+<ResponseField name="game_stats" type="List[GameStats]">
+  SQLAlchemy relationship to a list of `GameStats` objects associated with this game (one for each team).
+</ResponseField>
+
+## Database Indexes
+
+The Game model includes composite indexes for optimized querying:
+
+- `idx_game_season_week`: Composite index on (`season`, `match_week`) for efficient season/week-based queries
+- `idx_game_teams`: Composite index on (`home_team_id`, `away_team_id`) for efficient team-based queries
+- Single-column index on `date` for chronological queries
+- Single-column index on `match_week` for week-based queries
+
+## Methods
+
+### to_dict()
+
+```python
+def to_dict(self, include_relationships=False) -> dict:
+```
+
+Converts the Game model instance to a dictionary representation.
+
+**Parameters:**
+- `include_relationships` (bool, optional): If `True`, includes related team, league, and game stats data. Defaults to `False`.
+
+**Returns:**
+- `dict`: Dictionary containing all game data. Date fields are converted to ISO format strings.
+
+**Example Output (without relationships):**
+```json
+{
+  "id": "game_12345",
+  "home_team_id": "team_arsenal",
+  "away_team_id": "team_chelsea",
+  "league_id": 1,
+  "home_goals": 2,
+  "away_goals": 1,
+  "home_team_points": 3,
+  "away_team_points": 0,
+  "date": "2024-03-15T15:00:00",
+  "match_week": 28,
+  "season": "2023-24"
+}
+```
+
+**Example Output (with relationships):**
+```json
+{
+  "id": "game_12345",
+  "home_team_id": "team_arsenal",
+  "away_team_id": "team_chelsea",
+  "league_id": 1,
+  "home_goals": 2,
+  "away_goals": 1,
+  "home_team_points": 3,
+  "away_team_points": 0,
+  "date": "2024-03-15T15:00:00",
+  "match_week": 28,
+  "season": "2023-24",
+  "home_team": {
+    "id": "team_arsenal",
+    "name": "Arsenal"
+  },
+  "away_team": {
+    "id": "team_chelsea",
+    "name": "Chelsea"
+  },
+  "league": {
+    "id": 1,
+    "name": "Premier League"
+  },
+  "game_stats": [
+    { /* GameStats for home team */ },
+    { /* GameStats for away team */ }
+  ]
+}
+```
+
+## Usage Examples
+
+### Querying Games
+
+```python
+from sqlalchemy.orm import Session
+from premier_league.data.models import Game
+
+# Get a game by ID
+game = session.query(Game).filter(Game.id == "game_12345").first()
+
+# Get all games for a specific match week
+week_games = session.query(Game).filter(
+    Game.season == "2023-24",
+    Game.match_week == 28
+).all()
+
+# Get all home games for a team
+home_games = session.query(Game).filter(
+    Game.home_team_id == "team_arsenal"
+).order_by(Game.date.desc()).all()
+
+# Get high-scoring games (total goals > 5)
+high_scoring = session.query(Game).filter(
+    (Game.home_goals + Game.away_goals) > 5
+).all()
+```
+
+### Accessing Relationships
+
+```python
+# Access related data through relationships
+game = session.query(Game).filter(Game.id == "game_12345").first()
+
+print(f"Home: {game.home_team.name}")
+print(f"Away: {game.away_team.name}")
+print(f"League: {game.league.name}")
+
+# Access game statistics
+for stats in game.game_stats:
+    print(f"Team {stats.team_id}: {stats.xG} xG")
+```
+
+### Creating a New Game
+
+```python
+from datetime import datetime
+from premier_league.data.models import Game
+
+new_game = Game(
+    id="game_12346",
+    home_team_id="team_liverpool",
+    away_team_id="team_manchester_united",
+    league_id=1,
+    home_goals=3,
+    away_goals=1,
+    home_team_points=3,
+    away_team_points=0,
+    date=datetime(2024, 3, 20, 17, 30),
+    match_week=29,
+    season="2023-24"
+)
+
+session.add(new_game)
+session.commit()
+```
+
+## Related Models
+
+- [Team](/api-reference/models/team) - Teams that play in games
+- [League](/api-reference/models/league) - The league organizing the games
+- [GameStats](/api-reference/models/game-stats) - Detailed statistics for each team in a game

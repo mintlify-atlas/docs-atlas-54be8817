@@ -1,0 +1,516 @@
+---
+title: "Ranking Table"
+description: "Scrape and export league standings from Europe's top 5 football leagues"
+---
+
+## Overview
+
+The `RankingTable` class provides access to league standings for the top 5 European football leagues. It enables scraping current and historical rankings, with support for multiple export formats including CSV, JSON, and PDF.
+
+<Note>
+The module automatically handles European qualification spots and relegation zones in PDF exports, with color-coded visual indicators.
+</Note>
+
+## Installation
+
+```python
+from premier_league import RankingTable
+```
+
+## Initialization
+
+```python
+ranking = RankingTable(
+    league="Premier League",
+    target_season="2023-2024",
+    cache=True
+)
+```
+
+### Parameters
+
+<ParamField path="league" type="str" default="Premier League">
+  League to scrape rankings for. Options:
+  - "Premier League" (England)
+  - "La Liga" (Spain)
+  - "Serie A" (Italy)
+  - "Bundesliga" (Germany)
+  - "Ligue 1" (France)
+</ParamField>
+
+<ParamField path="target_season" type="str" default="None">
+  Specific season in format "YYYY-YYYY" (e.g., "2023-2024"). If None, uses current season
+</ParamField>
+
+<ParamField path="cache" type="bool" default="True">
+  Whether to cache scraped data to reduce subsequent loading times
+</ParamField>
+
+## Quick Start
+
+<CodeGroup>
+
+```python Current Season
+from premier_league import RankingTable
+
+# Get current Premier League standings
+pl = RankingTable(league="Premier League")
+standings = pl.get_ranking_list()
+
+# Display the table
+for row in standings:
+    print(row)
+```
+
+```python Specific Season
+# Get historical rankings
+ranking = RankingTable(
+    league="La Liga",
+    target_season="2020-2021"
+)
+
+standings = ranking.get_ranking_list()
+print(f"La Liga 2020-2021 standings: {len(standings)-1} teams")
+```
+
+```python Multiple Leagues
+# Compare multiple leagues
+leagues = ["Premier League", "La Liga", "Serie A", "Bundesliga", "Ligue 1"]
+
+for league in leagues:
+    ranking = RankingTable(league=league)
+    standings = ranking.get_ranking_list()
+    print(f"{league}: {standings[1][1]} is leading")  # [1][1] = first team name
+```
+
+</CodeGroup>
+
+## Core Methods
+
+### get_ranking_list()
+
+Retrieve the ranking data as a list of lists.
+
+```python
+ranking = RankingTable(league="Premier League")
+standings = ranking.get_ranking_list()
+
+# standings[0] contains headers
+# standings[1:] contains team data
+print(standings[0])  # ['Pos', 'Team', 'Pld', 'W', 'D', 'L', 'GF', 'GA', 'GD', 'Pts']
+
+for team_data in standings[1:]:
+    pos, team, played, wins, draws, losses, gf, ga, gd, points = team_data
+    print(f"{pos}. {team}: {points} pts")
+```
+
+#### Returns
+
+`List[List[str]]`: Nested list where first row is headers, subsequent rows are team data
+
+#### Column Structure
+
+- **Pos**: League position (1, 2, 3...)
+- **Team**: Team name
+- **Pld**: Matches played
+- **W**: Wins
+- **D**: Draws
+- **L**: Losses
+- **GF**: Goals for
+- **GA**: Goals against
+- **GD**: Goal difference
+- **Pts**: Total points
+
+---
+
+### get_ranking_csv()
+
+Export the ranking data to a CSV file.
+
+```python
+ranking = RankingTable(
+    league="Serie A",
+    target_season="2023-2024"
+)
+
+ranking.get_ranking_csv(
+    file_name="seria_a_2023_24",
+    header="Serie A 2023-2024 Standings"
+)
+# Creates: seria_a_2023_24.csv
+```
+
+#### Parameters
+
+<ParamField path="file_name" type="str" required>
+  Name of the CSV file (without .csv extension)
+</ParamField>
+
+<ParamField path="header" type="str" default="None">
+  Optional header text to include at the top of the CSV file
+</ParamField>
+
+---
+
+### get_ranking_json()
+
+Export the ranking data to a JSON file.
+
+```python
+ranking = RankingTable(league="Bundesliga")
+
+ranking.get_ranking_json(
+    file_name="bundesliga_current",
+    header="Current Bundesliga Standings"
+)
+# Creates: bundesliga_current.json
+```
+
+#### Parameters
+
+<ParamField path="file_name" type="str" required>
+  Name of the JSON file (without .json extension)
+</ParamField>
+
+<ParamField path="header" type="str" default="None">
+  Optional parent key for the entire data structure
+</ParamField>
+
+---
+
+### get_ranking_dict()
+
+Get the ranking data as a Python dictionary.
+
+```python
+ranking = RankingTable(league="Ligue 1")
+
+ranking_dict = ranking.get_ranking_dict(header="Ligue 1 Standings")
+print(ranking_dict)
+# Output: {'Ligue 1 Standings': [[...], [...], ...]}
+```
+
+#### Parameters
+
+<ParamField path="header" type="str" default="None">
+  Optional parent key for the dictionary
+</ParamField>
+
+#### Returns
+
+`dict`: Dictionary containing the ranking data
+
+---
+
+### get_ranking_pdf()
+
+Generate a professionally formatted PDF with color-coded qualification and relegation zones.
+
+<Warning>
+Requires the optional PDF dependency. Install with: `pip install premier_league[pdf]`
+</Warning>
+
+```python
+ranking = RankingTable(
+    league="Premier League",
+    target_season="2023-2024"
+)
+
+ranking.get_ranking_pdf(
+    file_name="premier_league_standings",
+    dir="reports"
+)
+# Creates: reports/premier_league_standings.pdf
+```
+
+#### Parameters
+
+<ParamField path="file_name" type="str" required>
+  Name of the PDF file (without .pdf extension)
+</ParamField>
+
+<ParamField path="dir" type="str" default="files">
+  Directory where the PDF will be saved. Created if it doesn't exist
+</ParamField>
+
+#### PDF Features
+
+<Accordion title="Color Coding System">
+  The PDF uses color-coded backgrounds to indicate European qualification and relegation:
+  
+  **Premier League (2021-present):**
+  - Light Green: Champions League spots (Top 4)
+  - Medium Green: Europa League spots
+  - Dark Green: Europa Conference League spot
+  - Red: Relegation zone (Bottom 3)
+  
+  **Historical Seasons:**
+  - Colors adapt based on the specific season's qualification rules
+  - Accounts for cup winners affecting European spots
+  - Special handling for unique seasons (e.g., 1994-95 with 4 relegations)
+</Accordion>
+
+<Accordion title="European Qualification Logic">
+  For seasons 2021 onwards, the PDF automatically determines:
+  
+  - FA Cup winners (Europa League spot)
+  - EFL Cup winners (Conference League spot)
+  - Champions League winners (automatic CL qualification)
+  - Europa League winners (automatic CL qualification)
+  - Conference League winners (automatic Europa qualification)
+  
+  Spots are redistributed if teams qualify through multiple routes.
+</Accordion>
+
+---
+
+## Supported Leagues & Seasons
+
+<Tabs>
+  <Tab title="Premier League">
+    **Country:** England  
+    **Available from:** 1947-1948 season  
+    **Teams:** 20  
+    
+    ```python
+    ranking = RankingTable(
+        league="Premier League",
+        target_season="1992-1993"  # First PL season
+    )
+    ```
+  </Tab>
+  
+  <Tab title="La Liga">
+    **Country:** Spain  
+    **Available from:** 1929-1930 season  
+    **Teams:** 20  
+    
+    ```python
+    ranking = RankingTable(
+        league="La Liga",
+        target_season="2010-2011"
+    )
+    ```
+  </Tab>
+  
+  <Tab title="Serie A">
+    **Country:** Italy  
+    **Available from:** 1929-1930 season  
+    **Teams:** 20  
+    
+    ```python
+    ranking = RankingTable(
+        league="Serie A",
+        target_season="2005-2006"
+    )
+    ```
+  </Tab>
+  
+  <Tab title="Bundesliga">
+    **Country:** Germany  
+    **Available from:** 1963-1964 season  
+    **Teams:** 18  
+    
+    ```python
+    ranking = RankingTable(
+        league="Bundesliga",
+        target_season="2013-2014"
+    )
+    ```
+  </Tab>
+  
+  <Tab title="Ligue 1">
+    **Country:** France  
+    **Available from:** 1945-1946 season  
+    **Teams:** 18  
+    
+    ```python
+    ranking = RankingTable(
+        league="Ligue 1",
+        target_season="2018-2019"
+    )
+    ```
+  </Tab>
+</Tabs>
+
+## Advanced Examples
+
+### Export to Multiple Formats
+
+```python
+from premier_league import RankingTable
+
+# Initialize for current Premier League season
+pl = RankingTable(league="Premier League")
+
+# Export to all formats
+pl.get_ranking_csv("premier_league_standings", header="PL Standings")
+pl.get_ranking_json("premier_league_standings", header="standings")
+pl.get_ranking_pdf("premier_league_standings", dir="reports")
+
+print("Exported to CSV, JSON, and PDF!")
+```
+
+### Compare Seasons
+
+```python
+# Compare title race across different seasons
+seasons = ["2018-2019", "2019-2020", "2020-2021"]
+
+for season in seasons:
+    ranking = RankingTable(
+        league="Premier League",
+        target_season=season
+    )
+    standings = ranking.get_ranking_list()
+    
+    # Get top 3 teams
+    top_3 = standings[1:4]
+    print(f"\n{season} Top 3:")
+    for pos, team, *stats in top_3:
+        points = stats[-1]
+        print(f"  {pos}. {team} - {points} pts")
+```
+
+### Historical Analysis
+
+```python
+import pandas as pd
+from premier_league import RankingTable
+
+# Analyze La Liga over multiple seasons
+all_winners = []
+
+for year in range(2010, 2024):
+    season = f"{year}-{year+1}"
+    ranking = RankingTable(
+        league="La Liga",
+        target_season=season
+    )
+    standings = ranking.get_ranking_list()
+    winner_data = standings[1]  # First place
+    
+    all_winners.append({
+        'season': season,
+        'team': winner_data[1],
+        'points': winner_data[-1]
+    })
+
+df = pd.DataFrame(all_winners)
+print(df)
+print(f"\nMost titles: {df['team'].value_counts().head()}")
+```
+
+### Generate Reports for All Leagues
+
+```python
+from premier_league import RankingTable
+import os
+
+leagues = ["Premier League", "La Liga", "Serie A", "Bundesliga", "Ligue 1"]
+season = "2023-2024"
+
+os.makedirs("league_reports", exist_ok=True)
+
+for league in leagues:
+    print(f"Generating report for {league}...")
+    
+    ranking = RankingTable(
+        league=league,
+        target_season=season,
+        cache=True
+    )
+    
+    # Export to all formats
+    league_file = league.lower().replace(" ", "_")
+    ranking.get_ranking_csv(
+        f"league_reports/{league_file}",
+        header=f"{league} {season}"
+    )
+    ranking.get_ranking_json(
+        f"league_reports/{league_file}",
+        header=f"{league} {season}"
+    )
+    ranking.get_ranking_pdf(
+        f"{league_file}_{season}",
+        dir="league_reports"
+    )
+    
+    print(f"✓ {league} complete")
+
+print("\nAll reports generated in league_reports/")
+```
+
+## Working with Data
+
+### Filter by Position
+
+```python
+ranking = RankingTable(league="Premier League")
+standings = ranking.get_ranking_list()
+
+# Get teams in European spots (top 7)
+european_teams = standings[1:8]
+print("Teams qualifying for Europe:")
+for row in european_teams:
+    print(f"{row[0]}. {row[1]} - {row[-1]} pts")
+
+# Get teams in relegation zone (bottom 3)
+relegation_teams = standings[-3:]
+print("\nTeams in relegation zone:")
+for row in relegation_teams:
+    print(f"{row[0]}. {row[1]} - {row[-1]} pts")
+```
+
+### Calculate Statistics
+
+```python
+ranking = RankingTable(league="Serie A")
+standings = ranking.get_ranking_list()
+
+# Extract data (skip header row)
+teams_data = standings[1:]
+
+# Calculate league statistics
+total_goals = sum(int(row[6]) for row in teams_data)  # GF column
+avg_points = sum(int(row[-1]) for row in teams_data) / len(teams_data)
+
+print(f"Total goals scored: {total_goals}")
+print(f"Average points per team: {avg_points:.1f}")
+
+# Find highest scoring team
+highest_scoring = max(teams_data, key=lambda x: int(x[6]))
+print(f"Highest scoring: {highest_scoring[1]} with {highest_scoring[6]} goals")
+```
+
+## Error Handling
+
+```python
+from premier_league import RankingTable
+
+try:
+    # Invalid season format
+    ranking = RankingTable(
+        league="Premier League",
+        target_season="2023"  # Should be "2023-2024"
+    )
+except Exception as e:
+    print(f"Error: {e}")
+
+try:
+    # Season before league existed
+    ranking = RankingTable(
+        league="Bundesliga",
+        target_season="1950-1951"  # Bundesliga started in 1963
+    )
+except Exception as e:
+    print(f"Error: {e}")
+```
+
+<Tip>
+Use `cache=True` (default) to significantly speed up repeated requests for the same season data.
+</Tip>
+
+<Note>
+The module automatically handles qualification/relegation markers like "(R)", "(C)" in the scraped data, providing clean team names in the output.
+</Note>

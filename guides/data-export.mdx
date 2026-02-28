@@ -1,0 +1,535 @@
+---
+title: Data Export
+description: Export Premier League data to CSV, JSON, and PDF formats
+---
+
+The Premier League library provides flexible export options across all modules. This guide shows you how to export data in various formats for analysis, reporting, and sharing.
+
+## Export Formats Overview
+
+All modules support multiple export formats:
+
+| Module | CSV | JSON | PDF | Dictionary |
+|--------|-----|------|-----|------------|
+| MatchStatistics | ✅ | ❌ | ❌ | ❌ |
+| RankingTable | ✅ | ✅ | ✅ | ✅ |
+| PlayerSeasonLeaders | ✅ | ✅ | ✅ | ❌ |
+| Transfers | ✅ | ✅ | ❌ | ❌ |
+
+## CSV Export
+
+CSV exports are supported across all modules and are ideal for data analysis in Excel, pandas, or R.
+
+### Match Statistics (ML Dataset)
+
+Export match data formatted for machine learning:
+
+```python
+from premier_league import MatchStatistics
+
+stats = MatchStatistics()
+
+# Export full dataset
+stats.create_dataset(
+    output_path="ml_data/matches.csv",
+    lag=10,
+    weights="exp",
+    params=0.9
+)
+```
+
+**Output format**:
+```csv
+game_id,date,season,match_week,home_team_id,away_team_id,home_team,away_team,home_xG,home_shots_total_FW,away_xG,away_shots_total_FW,...,home_goals,away_goals
+ab123cd,2024-01-15,2023-2024,20,team1,team2,Arsenal,Liverpool,2.3,15,1.8,12,...,2,1
+```
+
+<Note>
+The `create_dataset()` method automatically places target columns (`home_goals`, `away_goals`) at the end for ML convenience.
+</Note>
+
+### Ranking Tables
+
+Export league standings to CSV:
+
+```python
+from premier_league import RankingTable
+
+# Export current Premier League standings
+ranking = RankingTable(league="Premier League")
+ranking.get_ranking_csv(
+    file_name="premier_league_standings",
+    header="Premier League 2023-2024 Standings"
+)
+# Creates: premier_league_standings.csv
+```
+
+**Output format**:
+```csv
+Premier League 2023-2024 Standings
+Pos,Team,Pld,W,D,L,GF,GA,GD,Pts
+1,Arsenal,38,28,5,5,88,43,+45,89
+2,Manchester City,38,27,5,6,96,34,+62,86
+```
+
+### Player Statistics
+
+Export top scorers or assist leaders:
+
+```python
+from premier_league import PlayerSeasonLeaders
+
+# Export top 20 goal scorers
+scorers = PlayerSeasonLeaders(
+    stat_type="G",
+    target_season="2023-2024",
+    league="Premier League"
+)
+
+scorers.get_top_stats_csv(
+    file_name="top_scorers_2024",
+    header="Premier League 2023-2024 Top Scorers",
+    limit=20  # Top 20 players only
+)
+```
+
+**Parameters**:
+- `file_name` (str): Filename without extension
+- `header` (str, optional): Header row for the CSV
+- `limit` (int, optional): Number of players to include
+
+### Transfer Data
+
+Export team transfers:
+
+```python
+from premier_league import Transfers
+
+transfers = Transfers(target_season="2023-2024")
+
+# Export both in and out transfers
+transfers.transfer_csv(
+    team="Chelsea",
+    file_name="chelsea_transfers_2024",
+    transfer_type="both"  # or "in" or "out"
+)
+```
+
+**Transfer types**:
+- `"both"`: Creates file with both incoming and outgoing transfers
+- `"in"`: Only incoming transfers
+- `"out"`: Only outgoing transfers
+
+**Output format**:
+```csv
+Chelsea 2023-2024 Transfers In
+Date,Name,Position,Club
+08/15,Moises Caicedo,Midfielder,Brighton & Hove Albion
+08/20,Cole Palmer,Forward,Manchester City
+
+Chelsea 2023-2024 Transfers Out
+Date,Name,Position,Club
+07/02,Kai Havertz,Forward,Arsenal
+07/15,Mason Mount,Midfielder,Manchester United
+```
+
+## JSON Export
+
+JSON exports are perfect for web applications, APIs, and JavaScript-based analysis.
+
+### Ranking Tables as JSON
+
+```python
+ranking = RankingTable(league="La Liga", target_season="2023-2024")
+
+ranking.get_ranking_json(
+    file_name="la_liga_standings",
+    header="La Liga Standings"
+)
+```
+
+**Output format**:
+```json
+{
+  "La Liga Standings": [
+    ["Pos", "Team", "Pld", "W", "D", "L", "GF", "GA", "GD", "Pts"],
+    ["1", "Real Madrid", "38", "29", "8", "1", "87", "26", "+61", "95"],
+    ["2", "Barcelona", "38", "27", "7", "4", "79", "36", "+43", "88"]
+  ]
+}
+```
+
+### Player Statistics as JSON
+
+```python
+assist_leaders = PlayerSeasonLeaders(
+    stat_type="A",
+    league="Serie A"
+)
+
+assist_leaders.get_top_stats_json(
+    file_name="serie_a_assists",
+    header="Serie A Assist Leaders",
+    limit=10
+)
+```
+
+### Transfer Data as JSON
+
+```python
+transfers = Transfers(
+    target_season="2023-2024",
+    league="Bundesliga"
+)
+
+transfers.transfer_json(
+    team="Bayern Munich",
+    file_name="bayern_transfers",
+    transfer_type="in"
+)
+```
+
+## Dictionary Export
+
+Get data as Python dictionaries for in-memory processing:
+
+```python
+ranking = RankingTable(league="Premier League")
+
+# Get as dictionary
+standing_dict = ranking.get_ranking_dict(
+    header="Current Standings"
+)
+
+# Use in your application
+for row in standing_dict["Current Standings"]:
+    print(f"{row[1]} has {row[8]} points")  # Team name and points
+```
+
+**Use cases**:
+- Building web APIs
+- Creating custom visualizations
+- Feeding data to other Python libraries
+- Real-time data processing
+
+## PDF Export
+
+PDF exports create beautifully formatted reports with color-coding and professional styling.
+
+<Warning>
+PDF export requires the optional `reportlab` dependency. Install with:
+```bash
+pip install premier-league[pdf]
+```
+</Warning>
+
+### Ranking Tables as PDF
+
+```python
+ranking = RankingTable(
+    league="Premier League",
+    target_season="2023-2024"
+)
+
+ranking.get_ranking_pdf(
+    file_name="premier_league_2024",
+    dir="reports"  # Output directory
+)
+# Creates: reports/premier_league_2024.pdf
+```
+
+**PDF Features**:
+- **Color-coded rows**:
+  - Light green: Champions League spots (top 4)
+  - Yellow-green: Europa League spots
+  - Green: Europa Conference League spot
+  - Red: Relegation zone (bottom 3)
+- **Centered title**: League name and season
+- **Formatted table**: Clean grid with proper alignment
+- **A3 page size**: Fits all columns comfortably
+
+### Player Statistics as PDF
+
+```python
+scorers = PlayerSeasonLeaders(
+    stat_type="G",
+    target_season="2023-2024"
+)
+
+scorers.get_top_stats_pdf(
+    file_name="top_scorers",
+    path="reports/players"
+)
+```
+
+**PDF Features for Players**:
+- Top 20 players only
+- Gold highlighting for #1 scorer
+- Includes player name, country, club, and statistics
+- Professional formatting for presentations
+
+## Export Workflows
+
+### Complete Season Analysis Export
+
+<Steps>
+  <Step title="Initialize all modules">
+    ```python
+    from premier_league import MatchStatistics, RankingTable, PlayerSeasonLeaders, Transfers
+    
+    season = "2023-2024"
+    league = "Premier League"
+    ```
+  </Step>
+  
+  <Step title="Create output directory">
+    ```python
+    import os
+    
+    output_dir = f"exports/{season.replace('-', '_')}"
+    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(f"{output_dir}/csv", exist_ok=True)
+    os.makedirs(f"{output_dir}/json", exist_ok=True)
+    os.makedirs(f"{output_dir}/pdf", exist_ok=True)
+    ```
+  </Step>
+  
+  <Step title="Export ML dataset">
+    ```python
+    stats = MatchStatistics()
+    stats.create_dataset(
+        output_path=f"{output_dir}/csv/ml_dataset.csv",
+        lag=10,
+        weights="exp",
+        params=0.9
+    )
+    ```
+  </Step>
+  
+  <Step title="Export rankings">
+    ```python
+    ranking = RankingTable(league=league, target_season=season)
+    ranking.get_ranking_csv(f"{output_dir}/csv/standings", header=f"{league} {season}")
+    ranking.get_ranking_json(f"{output_dir}/json/standings", header=f"{league} {season}")
+    ranking.get_ranking_pdf("standings", dir=f"{output_dir}/pdf")
+    ```
+  </Step>
+  
+  <Step title="Export player statistics">
+    ```python
+    # Goal scorers
+    scorers = PlayerSeasonLeaders(stat_type="G", target_season=season, league=league)
+    scorers.get_top_stats_csv(f"{output_dir}/csv/top_scorers", limit=20)
+    scorers.get_top_stats_json(f"{output_dir}/json/top_scorers", limit=20)
+    scorers.get_top_stats_pdf("top_scorers", path=f"{output_dir}/pdf")
+    
+    # Assist leaders
+    assists = PlayerSeasonLeaders(stat_type="A", target_season=season, league=league)
+    assists.get_top_stats_csv(f"{output_dir}/csv/top_assists", limit=20)
+    assists.get_top_stats_json(f"{output_dir}/json/top_assists", limit=20)
+    assists.get_top_stats_pdf("top_assists", path=f"{output_dir}/pdf")
+    ```
+  </Step>
+</Steps>
+
+### Multi-League Comparison Export
+
+```python
+leagues = ["Premier League", "La Liga", "Serie A", "Bundesliga", "Ligue 1"]
+season = "2023-2024"
+
+for league in leagues:
+    # Export rankings for each league
+    ranking = RankingTable(league=league, target_season=season)
+    
+    league_slug = league.lower().replace(" ", "_")
+    ranking.get_ranking_csv(
+        file_name=f"exports/comparison/{league_slug}_standings",
+        header=f"{league} {season}"
+    )
+    
+    # Export top scorers
+    scorers = PlayerSeasonLeaders(stat_type="G", league=league, target_season=season)
+    scorers.get_top_stats_csv(
+        file_name=f"exports/comparison/{league_slug}_scorers",
+        limit=10
+    )
+
+print("Multi-league export completed!")
+```
+
+### Team-Specific Report
+
+```python
+def export_team_report(team_name, season, output_dir):
+    """Generate complete report for a specific team"""
+    import os
+    
+    # Create team directory
+    team_dir = f"{output_dir}/{team_name.replace(' ', '_').lower()}"
+    os.makedirs(team_dir, exist_ok=True)
+    
+    # Export transfers
+    transfers = Transfers(target_season=season)
+    transfers.transfer_csv(
+        team=team_name,
+        file_name=f"{team_dir}/transfers",
+        transfer_type="both"
+    )
+    transfers.transfer_json(
+        team=team_name,
+        file_name=f"{team_dir}/transfers",
+        transfer_type="both"
+    )
+    
+    # Export team's match history
+    stats = MatchStatistics()
+    team_games = stats.get_team_games(team_name)
+    
+    # Save to JSON
+    import json
+    with open(f"{team_dir}/match_history.json", "w") as f:
+        json.dump(team_games, f, indent=2)
+    
+    print(f"Report generated for {team_name} in {team_dir}")
+
+# Usage
+export_team_report("Liverpool", "2023-2024", "team_reports")
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use descriptive filenames">
+    Include league, season, and data type in filenames:
+    
+    ```python
+    # Good
+    "premier_league_2023_2024_standings.csv"
+    "serie_a_top_scorers_2024.json"
+    
+    # Avoid
+    "data.csv"
+    "export1.json"
+    ```
+  </Accordion>
+  
+  <Accordion title="Organize exports by date">
+    Create timestamped directories for historical tracking:
+    
+    ```python
+    from datetime import datetime
+    
+    timestamp = datetime.now().strftime("%Y%m%d")
+    export_dir = f"exports/{timestamp}"
+    os.makedirs(export_dir, exist_ok=True)
+    ```
+  </Accordion>
+  
+  <Accordion title="Validate exports after creation">
+    Always check that files were created successfully:
+    
+    ```python
+    import os
+    
+    export_path = "data/standings.csv"
+    ranking.get_ranking_csv("data/standings")
+    
+    if os.path.exists(f"{export_path}"):
+        file_size = os.path.getsize(f"{export_path}")
+        print(f"Export successful: {file_size} bytes")
+    else:
+        print("Export failed!")
+    ```
+  </Accordion>
+  
+  <Accordion title="Handle errors gracefully">
+    Wrap exports in try-except blocks:
+    
+    ```python
+    try:
+        ranking.get_ranking_pdf("standings", dir="reports")
+        print("PDF generated successfully")
+    except ImportError:
+        print("reportlab not installed. Use: pip install premier-league[pdf]")
+    except Exception as e:
+        print(f"Export failed: {e}")
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Export Format Comparison
+
+### When to Use Each Format
+
+**CSV**: Best for...
+- Data analysis in Excel, pandas, R
+- Importing into databases
+- Maximum compatibility
+- Large datasets
+
+**JSON**: Best for...
+- Web applications and APIs
+- JavaScript-based visualization
+- Nested/hierarchical data
+- Modern app integration
+
+**PDF**: Best for...
+- Presentations and reports
+- Sharing with non-technical users
+- Print-ready documents
+- Professional formatting
+
+**Dictionary**: Best for...
+- In-memory processing
+- Python-only workflows
+- Real-time applications
+- Custom data transformations
+
+## Troubleshooting
+
+### PDF Export Fails
+
+**Error**: `ModuleNotFoundError: No module named 'reportlab'`
+
+**Solution**:
+```bash
+pip install premier-league[pdf]
+# or
+pip install reportlab
+```
+
+### Empty CSV Files
+
+**Cause**: No data available for the specified parameters
+
+**Solution**:
+```python
+# Check data exists first
+data = ranking.get_ranking_list()
+if len(data) > 1:  # More than just header
+    ranking.get_ranking_csv("standings")
+else:
+    print("No data to export")
+```
+
+### File Permission Errors
+
+**Error**: `PermissionError: [Errno 13] Permission denied`
+
+**Solution**:
+- Ensure the output directory exists and is writable
+- Close any files that might be open in other applications
+- Check file system permissions
+
+```python
+import os
+
+output_dir = "exports"
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir, mode=0o755)
+```
+
+<Check>
+You now know how to export Premier League data in all supported formats!
+</Check>

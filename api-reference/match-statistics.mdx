@@ -1,0 +1,530 @@
+---
+title: 'MatchStatistics'
+description: 'Scrape, process, and update match statistics data for machine learning purposes'
+---
+
+## Overview
+
+The `MatchStatistics` class handles the retrieval of match data from specified URLs, processes game and player statistics from various tables, updates the underlying database, and allows exporting data as CSV files for further analysis or model training.
+
+## Constructor
+
+### MatchStatistics
+
+```python
+MatchStatistics(
+    db_filename: Optional[str] = "premier_league.db",
+    db_directory: Optional[str] = "data"
+)
+```
+
+Initialize the MatchStatistics instance. Sets up the current season, an empty list of URLs, initializes the database session, and fetches the current leagues information from the database.
+
+<ParamField path="db_filename" type="str" default="premier_league.db">
+  The filename for the SQLite database
+</ParamField>
+
+<ParamField path="db_directory" type="str" default="data">
+  The directory where the database file is stored
+</ParamField>
+
+#### Example
+
+```python
+from premier_league import MatchStatistics
+
+# Initialize with default database
+stats = MatchStatistics()
+
+# Initialize with custom database location
+stats = MatchStatistics(
+    db_filename="my_custom.db",
+    db_directory="custom_data"
+)
+```
+
+---
+
+## Methods
+
+### create_dataset
+
+```python
+create_dataset(
+    output_path: str,
+    rows_count: int = None,
+    lag: int = 10,
+    weights: Literal["lin", "exp"] = None,
+    params: float = None
+) -> None
+```
+
+Create a CSV file containing game statistics for machine learning training. Each row represents one game, including both home and away team statistics. The data is sorted by date to maintain chronological order.
+
+<ParamField path="output_path" type="str" required>
+  The file path where the CSV file will be saved
+</ParamField>
+
+<ParamField path="rows_count" type="int" default="None">
+  The maximum number of rows to include in the dataset. If provided, gets the last n rows after sorting by date
+</ParamField>
+
+<ParamField path="lag" type="int" default="10">
+  The number of past games to average. For example, lag=10 means the current row will use stats from the team's past 10 game average (earlier games are dropped)
+</ParamField>
+
+<ParamField path="weights" type="Literal['lin', 'exp']" default="None">
+  Whether to give importance to more recent games. No weight will be added if lag = 1.
+  - `"lin"`: Linear weights
+  - `"exp"`: Exponential weights
+</ParamField>
+
+<ParamField path="params" type="float" default="None">
+  The parameter to base exponential weighting strategy on. Only mandatory for exponential weights
+</ParamField>
+
+<ResponseField name="return" type="None">
+  This method doesn't return a value. It creates a CSV file at the specified path
+</ResponseField>
+
+#### Exceptions
+
+- `ValueError`: If `rows_count` is not an integer or is negative
+- `ValueError`: If `lag` is less than or equal to 0
+- `ValueError`: If `weights` is not "exp" or "lin"
+- `ValueError`: If `weights` is "exp" but `params` is not specified
+
+#### Example
+
+```python
+stats = MatchStatistics()
+
+# Create basic dataset with default lag
+stats.create_dataset("training_data.csv")
+
+# Create dataset with linear weighting
+stats.create_dataset(
+    "weighted_data.csv",
+    rows_count=1000,
+    lag=15,
+    weights="lin"
+)
+
+# Create dataset with exponential weighting
+stats.create_dataset(
+    "exp_weighted.csv",
+    lag=20,
+    weights="exp",
+    params=0.95
+)
+```
+
+---
+
+### match_statistic
+
+```python
+match_statistic(
+    season: str,
+    team: str = None
+) -> List[Type[Game]]
+```
+
+Retrieve match statistics for a given season or a specific team. If a team name is provided, returns a combined list of home and away games for that team. Otherwise, returns all games for the given season.
+
+<ParamField path="season" type="str" required>
+  The season to query (e.g., "2021-2022")
+</ParamField>
+
+<ParamField path="team" type="str" default="None">
+  The name of the team to filter games. If None, returns all games for the season
+</ParamField>
+
+<ResponseField name="return" type="List[Game]">
+  A list of Game objects that match the query
+</ResponseField>
+
+#### Example
+
+```python
+stats = MatchStatistics()
+
+# Get all games for a season
+all_games = stats.match_statistic("2023-2024", team=None)
+
+# Get all games for a specific team
+lfc_games = stats.match_statistic("2023-2024", team="Liverpool")
+```
+
+---
+
+### get_all_leagues
+
+```python
+get_all_leagues() -> List[str]
+```
+
+Retrieve all leagues from the database.
+
+<ResponseField name="return" type="List[str]">
+  A list of all League names in the database
+</ResponseField>
+
+#### Example
+
+```python
+stats = MatchStatistics()
+leagues = stats.get_all_leagues()
+print(leagues)  # ['Premier League', 'La Liga', 'Serie A', ...]
+```
+
+---
+
+### get_all_teams
+
+```python
+get_all_teams() -> List[str]
+```
+
+Retrieve all teams from the database.
+
+<ResponseField name="return" type="List[str]">
+  A list of all Team names in the database
+</ResponseField>
+
+#### Example
+
+```python
+stats = MatchStatistics()
+teams = stats.get_all_teams()
+print(teams)  # ['Arsenal', 'Chelsea', 'Liverpool', ...]
+```
+
+---
+
+### get_team_games
+
+```python
+get_team_games(
+    team_name: str
+) -> List[Type[Game]]
+```
+
+Retrieve all games for a specific team.
+
+<ParamField path="team_name" type="str" required>
+  The name of the team to filter games
+</ParamField>
+
+<ResponseField name="return" type="List[Game]">
+  A list of Game objects that match the query
+</ResponseField>
+
+#### Exceptions
+
+- `ValueError`: If no team is found with the provided name
+
+#### Example
+
+```python
+stats = MatchStatistics()
+
+try:
+    games = stats.get_team_games("Manchester United")
+    print(f"Found {len(games)} games")
+except ValueError as e:
+    print(f"Error: {e}")
+```
+
+---
+
+### get_total_game_count
+
+```python
+get_total_game_count() -> int
+```
+
+Retrieve the total number of games stored in the database.
+
+<ResponseField name="return" type="int">
+  The total number of games in the database
+</ResponseField>
+
+#### Example
+
+```python
+stats = MatchStatistics()
+total = stats.get_total_game_count()
+print(f"Total games in database: {total}")
+```
+
+---
+
+### get_games_by_season
+
+```python
+get_games_by_season(
+    season: str,
+    match_week: int
+) -> List[dict]
+```
+
+Retrieve all games for a specific season and match week.
+
+<ParamField path="season" type="str" required>
+  The season to query (e.g., "2021-2022")
+</ParamField>
+
+<ParamField path="match_week" type="int" required>
+  The match week to filter games
+</ParamField>
+
+<ResponseField name="return" type="List[dict]">
+  A list of Game dictionaries that match the query
+</ResponseField>
+
+#### Exceptions
+
+- `ValueError`: If season format is invalid (must be 'YYYY-YYYY')
+- `ValueError`: If no games are found for the specified season and match week
+
+#### Example
+
+```python
+stats = MatchStatistics()
+
+try:
+    games = stats.get_games_by_season("2023-2024", match_week=10)
+    for game in games:
+        print(f"{game['home_team']} vs {game['away_team']}")
+except ValueError as e:
+    print(f"Error: {e}")
+```
+
+---
+
+### get_games_before_date
+
+```python
+get_games_before_date(
+    date: datetime,
+    limit: int = 10,
+    team: Optional[str] = None
+) -> List[dict]
+```
+
+Retrieve games before a specific date with a limit. Optionally filter for a specific team.
+
+<ParamField path="date" type="datetime" required>
+  The reference date
+</ParamField>
+
+<ParamField path="limit" type="int" default="10">
+  Maximum number of games to return
+</ParamField>
+
+<ParamField path="team" type="str" default="None">
+  The name of the team to filter games
+</ParamField>
+
+<ResponseField name="return" type="List[dict]">
+  A list of Game dictionaries before the given date, ordered by date descending
+</ResponseField>
+
+#### Exceptions
+
+- `ValueError`: If no team is found with the provided name
+
+#### Example
+
+```python
+from datetime import datetime
+from premier_league import MatchStatistics
+
+stats = MatchStatistics()
+
+# Get 10 most recent games before a date
+date = datetime(2024, 1, 1)
+games = stats.get_games_before_date(date)
+
+# Get last 20 games for a specific team
+chelsea_games = stats.get_games_before_date(
+    date,
+    limit=20,
+    team="Chelsea"
+)
+```
+
+---
+
+### get_game_stats_before_date
+
+```python
+get_game_stats_before_date(
+    date: datetime,
+    limit: int = 10,
+    team: Optional[str] = None
+) -> List[dict]
+```
+
+Retrieve game statistics before a specific date with a limit. Optionally filter for a specific team.
+
+<ParamField path="date" type="datetime" required>
+  The reference date
+</ParamField>
+
+<ParamField path="limit" type="int" default="10">
+  Maximum number of game stats to return
+</ParamField>
+
+<ParamField path="team" type="str" default="None">
+  The name of the team to filter games
+</ParamField>
+
+<ResponseField name="return" type="List[dict]">
+  List of game statistics dictionaries with relationships included. Returns empty list if no results found
+</ResponseField>
+
+#### Exceptions
+
+- `ValueError`: If date is not a datetime object
+
+#### Example
+
+```python
+from datetime import datetime
+from premier_league import MatchStatistics
+
+stats = MatchStatistics()
+date = datetime(2024, 2, 15)
+
+try:
+    game_stats = stats.get_game_stats_before_date(date, limit=5, team="Arsenal")
+    for stat in game_stats:
+        print(f"xG: {stat['xG']}, possession: {stat['possession_rate']}")
+except ValueError as e:
+    print(f"Error: {e}")
+```
+
+---
+
+### get_future_match
+
+```python
+get_future_match(
+    league: str,
+    team: str = None
+) -> Union[Dict, str]
+```
+
+Retrieve the next match for a specific league and team (optional). This returns the team objects of the future match.
+
+<ParamField path="league" type="str" required>
+  The name of the league to retrieve info for (e.g., "Premier League")
+</ParamField>
+
+<ParamField path="team" type="str" default="None">
+  The name of the team to filter games
+</ParamField>
+
+<ResponseField name="return" type="Union[Dict, str]">
+  Dictionary with 'home_team' and 'away_team' keys containing Team objects, or a string message if no matches are available
+</ResponseField>
+
+#### Exceptions
+
+- `ValueError`: If no team is found with the provided name
+
+#### Example
+
+```python
+stats = MatchStatistics()
+
+# Get next match for the league
+next_match = stats.get_future_match("Premier League")
+if isinstance(next_match, dict):
+    print(f"{next_match['home_team'].name} vs {next_match['away_team'].name}")
+else:
+    print(next_match)  # Season finished message
+
+# Get next match for a specific team
+lfc_next = stats.get_future_match("Premier League", team="Liverpool")
+```
+
+---
+
+### update_data_set
+
+```python
+update_data_set() -> None
+```
+
+Update the dataset by scraping new game data and updating league information. This method will take a considerable amount of time to run due to rate limit restrictions.
+
+This method:
+- Determines the current season based on the current date
+- Constructs URLs for the seasons needing updates
+- Scrapes the season schedule and filters out already-processed games
+- Processes and adds new match details to the database
+- Updates each league's up-to-date season and match week information
+
+<ResponseField name="return" type="None">
+  This method doesn't return a value. It updates the database and prints status messages
+</ResponseField>
+
+#### Example
+
+```python
+stats = MatchStatistics()
+
+# Update with latest match data
+stats.update_data_set()
+# Output: "Data Updated!" or "All Data is up to Date!"
+```
+
+---
+
+## Database Models
+
+The MatchStatistics class works with the following database models:
+
+### Game
+
+Represents a single match with the following key attributes:
+- `id`: Unique game identifier
+- `home_team_id`: ID of the home team
+- `away_team_id`: ID of the away team
+- `league_id`: ID of the league
+- `home_goals`: Goals scored by home team
+- `away_goals`: Goals scored by away team
+- `home_team_points`: Total points for home team at time of match
+- `away_team_points`: Total points for away team at time of match
+- `date`: Match datetime
+- `match_week`: Match week number
+- `season`: Season string (e.g., "2023-2024")
+- `game_stats`: Related GameStats objects
+
+### GameStats
+
+Represents detailed statistics for a team in a specific game, including:
+- Expected goals (xG, xAG)
+- Shots and shot accuracy by position
+- Passing statistics
+- Defensive actions (tackles, blocks, interceptions)
+- Possession metrics
+- Goalkeeper statistics
+- Disciplinary records
+
+### Team
+
+Represents a team with:
+- `id`: Unique team identifier
+- `name`: Team name
+- `league_id`: Associated league
+
+### League
+
+Represents a league with:
+- `name`: League name
+- `up_to_date_season`: Most recent season in database
+- `up_to_date_match_week`: Most recent match week in database

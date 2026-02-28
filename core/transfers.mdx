@@ -1,0 +1,733 @@
+---
+title: "Transfers"
+description: "Track player transfers (in and out) for teams across Europe's top 5 football leagues"
+---
+
+## Overview
+
+The `Transfers` class provides comprehensive access to player transfer data for professional football teams across Europe's top 5 leagues. It enables tracking both incoming and outgoing transfers for any team in a given season.
+
+<Note>
+Transfer data includes player names, positions, dates, and the clubs involved in each transfer, supporting seasons from the 1920s-1960s onwards depending on the league.
+</Note>
+
+## Installation
+
+```python
+from premier_league import Transfers
+```
+
+## Initialization
+
+```python
+transfers = Transfers(
+    target_season="2023-2024",
+    league="Premier League",
+    cache=True
+)
+```
+
+### Parameters
+
+<ParamField path="target_season" type="str" default="None">
+  Specific season in format "YYYY-YYYY" (e.g., "2023-2024"). If None, uses current season
+</ParamField>
+
+<ParamField path="league" type="str" default="premier league">
+  League to scrape transfer data for. Options:
+  - "Premier League" (England)
+  - "La Liga" (Spain)
+  - "Serie A" (Italy)
+  - "Bundesliga" (Germany)
+  - "Ligue 1" (France)
+</ParamField>
+
+<ParamField path="cache" type="bool" default="True">
+  Whether to cache scraped data for faster subsequent access
+</ParamField>
+
+## Quick Start
+
+<CodeGroup>
+
+```python Display Transfers
+from premier_league import Transfers
+
+# Get current season transfers
+transfers = Transfers(league="Premier League")
+
+# Print transfer table for a team
+transfers.print_transfer_table("Chelsea")
+```
+
+```python Access Transfer Data
+# Get incoming transfers
+transfers = Transfers(
+    league="La Liga",
+    target_season="2023-2024"
+)
+
+transfers_in = transfers.transfer_in_table("Barcelona")
+
+print("Barcelona Incoming Transfers:")
+for transfer in transfers_in[1:]:  # Skip header
+    date, name, position, from_club = transfer
+    print(f"{name} ({position}) from {from_club} on {date}")
+```
+
+```python Export to File
+# Export both incoming and outgoing transfers
+transfers = Transfers(league="Serie A")
+
+transfers.transfer_csv(
+    team="Milan",
+    file_name="milan_transfers_2023_24",
+    transfer_type="both"
+)
+```
+
+</CodeGroup>
+
+## Core Methods
+
+### print_transfer_table()
+
+Print formatted transfer tables (both incoming and outgoing) for a specified team.
+
+```python
+transfers = Transfers(
+    league="Premier League",
+    target_season="2023-2024"
+)
+
+transfers.print_transfer_table("Arsenal")
+```
+
+**Output:**
+```
+Arsenal >> Transfers 2023-2024 In:
++--------+------------------+----------+----------------------+
+| Date   | Name             | Position | Club                 |
++--------+------------------+----------+----------------------+
+| 07/01  | Declan Rice      | MF       | West Ham United      |
+| 07/15  | Kai Havertz       | FW       | Chelsea              |
++--------+------------------+----------+----------------------+
+
+Arsenal >> Transfers 2023-2024 Out:
++--------+------------------+----------+----------------------+
+| Date   | Name             | Position | Club                 |
++--------+------------------+----------+----------------------+
+| 06/30  | Granit Xhaka     | MF       | Bayer Leverkusen     |
++--------+------------------+----------+----------------------+
+```
+
+#### Parameters
+
+<ParamField path="team" type="str" required>
+  Name of the team (fuzzy matching supported)
+</ParamField>
+
+#### Raises
+
+`TeamNotFoundError`: If the specified team is not found in the current season
+
+---
+
+### transfer_in_table()
+
+Get incoming transfers for a specific team as a structured list.
+
+```python
+transfers = Transfers(league="Bundesliga")
+
+incoming = transfers.transfer_in_table("Bayern Munich")
+
+# First row is headers
+headers = incoming[0]
+print(headers)  # ['Date', 'Name', 'Position', 'Club']
+
+# Process each transfer
+for transfer in incoming[1:]:
+    date, player_name, position, from_club = transfer
+    print(f"{player_name} joined from {from_club}")
+```
+
+#### Parameters
+
+<ParamField path="team" type="str" required>
+  Name of the team
+</ParamField>
+
+#### Returns
+
+`List[List[str]]`: Nested list where:
+- First row: `['Date', 'Name', 'Position', 'Club']`
+- Subsequent rows: Individual transfer data
+
+#### Column Structure
+
+- **Date**: Transfer date in MM/DD format
+- **Name**: Player name
+- **Position**: Player position (FW, MF, DF, GK)
+- **Club**: Previous club the player joined from
+
+#### Raises
+
+`TeamNotFoundError`: If the team is not found
+
+---
+
+### transfer_out_table()
+
+Get outgoing transfers for a specific team as a structured list.
+
+```python
+transfers = Transfers(
+    league="Ligue 1",
+    target_season="2022-2023"
+)
+
+outgoing = transfers.transfer_out_table("PSG")
+
+print("Players who left PSG:")
+for transfer in outgoing[1:]:
+    date, player_name, position, to_club = transfer
+    print(f"{player_name} ({position}) → {to_club}")
+```
+
+#### Parameters
+
+<ParamField path="team" type="str" required>
+  Name of the team
+</ParamField>
+
+#### Returns
+
+`List[List[str]]`: Nested list with same structure as `transfer_in_table()`
+
+#### Column Structure
+
+- **Date**: Transfer date in MM/DD format
+- **Name**: Player name
+- **Position**: Player position
+- **Club**: New club the player transferred to
+
+#### Raises
+
+`TeamNotFoundError`: If the team is not found
+
+---
+
+### transfer_csv()
+
+Export transfer data to a CSV file.
+
+```python
+transfers = Transfers(league="Serie A")
+
+# Export both transfers in and out
+transfers.transfer_csv(
+    team="Juventus",
+    file_name="juventus_transfers",
+    transfer_type="both"
+)
+
+# Export only incoming transfers
+transfers.transfer_csv(
+    team="Inter Milan",
+    file_name="inter_incoming",
+    transfer_type="in"
+)
+
+# Export only outgoing transfers
+transfers.transfer_csv(
+    team="AC Milan",
+    file_name="milan_outgoing",
+    transfer_type="out"
+)
+```
+
+#### Parameters
+
+<ParamField path="team" type="str" required>
+  Name of the team
+</ParamField>
+
+<ParamField path="file_name" type="str" required>
+  Name of the CSV file (without .csv extension)
+</ParamField>
+
+<ParamField path="transfer_type" type="Literal['in', 'out', 'both']" default="both">
+  Type of transfers to export:
+  - `"in"`: Only incoming transfers
+  - `"out"`: Only outgoing transfers
+  - `"both"`: Both incoming and outgoing (creates separate sections)
+</ParamField>
+
+#### Raises
+
+`TeamNotFoundError`: If the team is not found
+
+---
+
+### transfer_json()
+
+Export transfer data to a JSON file.
+
+```python
+transfers = Transfers(
+    league="La Liga",
+    target_season="2023-2024"
+)
+
+# Export to JSON
+transfers.transfer_json(
+    team="Real Madrid",
+    file_name="real_madrid_transfers",
+    transfer_type="both"
+)
+```
+
+#### Parameters
+
+<ParamField path="team" type="str" required>
+  Name of the team
+</ParamField>
+
+<ParamField path="file_name" type="str" required>
+  Name of the JSON file (without .json extension)
+</ParamField>
+
+<ParamField path="transfer_type" type="Literal['in', 'out', 'both']" default="both">
+  Type of transfers to export
+</ParamField>
+
+#### Raises
+
+`TeamNotFoundError`: If the team is not found
+
+---
+
+### get_all_current_teams()
+
+Get a list of all teams in the specified league and season.
+
+```python
+transfers = Transfers(
+    league="Premier League",
+    target_season="2023-2024"
+)
+
+teams = transfers.get_all_current_teams()
+print(f"Teams in Premier League 2023-2024: {len(teams)}")
+for team in sorted(teams):
+    print(f"  - {team}")
+```
+
+#### Returns
+
+`List[str]`: List of all team names in the league for the specified season
+
+---
+
+### find_team()
+
+Find the exact team name from a partial or case-insensitive match.
+
+```python
+transfers = Transfers(league="Bundesliga")
+
+# Fuzzy search
+team = transfers.find_team("bayern")  # Returns "Bayern Munich"
+print(team)
+
+team = transfers.find_team("dortmund")  # Returns "Borussia Dortmund"
+print(team)
+
+team = transfers.find_team("xyz")  # Returns None
+print(team)
+```
+
+#### Parameters
+
+<ParamField path="target_team" type="str" required>
+  Team name or partial identifier (case-insensitive)
+</ParamField>
+
+#### Returns
+
+`str` or `None`: Exact team name if found, None otherwise
+
+---
+
+## Supported Leagues & Data Availability
+
+<Tabs>
+  <Tab title="Premier League">
+    **Country:** England  
+    **Available from:** 1946-1947 season  
+    
+    ```python
+    transfers = Transfers(
+        league="Premier League",
+        target_season="1992-1993"  # First PL season
+    )
+    ```
+  </Tab>
+  
+  <Tab title="La Liga">
+    **Country:** Spain  
+    **Available from:** 1928-1929 season  
+    
+    ```python
+    transfers = Transfers(
+        league="La Liga",
+        target_season="2015-2016"
+    )
+    ```
+  </Tab>
+  
+  <Tab title="Serie A">
+    **Country:** Italy  
+    **Available from:** 1946-1947 season  
+    
+    ```python
+    transfers = Transfers(
+        league="Serie A",
+        target_season="2018-2019"
+    )
+    ```
+  </Tab>
+  
+  <Tab title="Bundesliga">
+    **Country:** Germany  
+    **Available from:** 1963-1964 season  
+    
+    ```python
+    transfers = Transfers(
+        league="Bundesliga",
+        target_season="2019-2020"
+    )
+    ```
+  </Tab>
+  
+  <Tab title="Ligue 1">
+    **Country:** France  
+    **Available from:** 1945-1946 season  
+    
+    ```python
+    transfers = Transfers(
+        league="Ligue 1",
+        target_season="2021-2022"
+    )
+    ```
+  </Tab>
+</Tabs>
+
+## Advanced Examples
+
+### Analyze Transfer Activity
+
+```python
+from premier_league import Transfers
+
+transfers = Transfers(
+    league="Premier League",
+    target_season="2023-2024"
+)
+
+# Get all teams
+teams = transfers.get_all_current_teams()
+
+# Analyze transfer activity
+transfer_stats = []
+
+for team in teams:
+    transfers_in = transfers.transfer_in_table(team)
+    transfers_out = transfers.transfer_out_table(team)
+    
+    transfer_stats.append({
+        'team': team,
+        'incoming': len(transfers_in) - 1,  # Exclude header
+        'outgoing': len(transfers_out) - 1,
+        'net': (len(transfers_in) - 1) - (len(transfers_out) - 1)
+    })
+
+# Sort by most active
+transfer_stats.sort(key=lambda x: x['incoming'] + x['outgoing'], reverse=True)
+
+print("Most Active Transfer Teams:\n")
+for stat in transfer_stats[:5]:
+    print(f"{stat['team']}:")
+    print(f"  In: {stat['incoming']}, Out: {stat['outgoing']}, Net: {stat['net']}")
+```
+
+### Track Specific Position
+
+```python
+from premier_league import Transfers
+
+transfers = Transfers(league="Serie A")
+
+# Find all striker signings
+teams = transfers.get_all_current_teams()
+
+striker_signings = []
+
+for team in teams:
+    transfers_in = transfers.transfer_in_table(team)
+    
+    for transfer in transfers_in[1:]:
+        date, name, position, from_club = transfer
+        if position == "FW":
+            striker_signings.append({
+                'player': name,
+                'to': team,
+                'from': from_club,
+                'date': date
+            })
+
+print(f"Total striker signings in Serie A: {len(striker_signings)}\n")
+for signing in striker_signings[:10]:
+    print(f"{signing['player']}: {signing['from']} → {signing['to']}")
+```
+
+### Compare Seasons
+
+```python
+from premier_league import Transfers
+
+team_name = "Manchester United"
+seasons = ["2021-2022", "2022-2023", "2023-2024"]
+
+for season in seasons:
+    transfers = Transfers(
+        league="Premier League",
+        target_season=season,
+        cache=True
+    )
+    
+    transfers_in = transfers.transfer_in_table(team_name)
+    transfers_out = transfers.transfer_out_table(team_name)
+    
+    print(f"\n{team_name} - {season}:")
+    print(f"  Signings: {len(transfers_in) - 1}")
+    print(f"  Departures: {len(transfers_out) - 1}")
+    
+    if len(transfers_in) > 1:
+        print("\n  Key Signings:")
+        for transfer in transfers_in[1:4]:  # Top 3
+            print(f"    - {transfer[1]} from {transfer[3]}")
+```
+
+### Export League-Wide Data
+
+```python
+from premier_league import Transfers
+import os
+
+league = "La Liga"
+season = "2023-2024"
+
+# Create output directory
+output_dir = f"transfers/{league.replace(' ', '_').lower()}/{season}"
+os.makedirs(output_dir, exist_ok=True)
+
+transfers = Transfers(
+    league=league,
+    target_season=season
+)
+
+# Export for all teams
+teams = transfers.get_all_current_teams()
+
+for team in teams:
+    safe_name = team.replace(" ", "_").replace("/", "_")
+    
+    # Export as CSV
+    transfers.transfer_csv(
+        team=team,
+        file_name=f"{output_dir}/{safe_name}",
+        transfer_type="both"
+    )
+    
+    # Export as JSON
+    transfers.transfer_json(
+        team=team,
+        file_name=f"{output_dir}/{safe_name}",
+        transfer_type="both"
+    )
+    
+    print(f"✓ Exported {team}")
+
+print(f"\nAll transfers exported to {output_dir}/")
+```
+
+### Identify Transfer Patterns
+
+```python
+from premier_league import Transfers
+from collections import Counter
+
+transfers = Transfers(
+    league="Premier League",
+    target_season="2023-2024"
+)
+
+teams = transfers.get_all_current_teams()
+
+# Track which leagues teams are buying from
+source_leagues = []
+
+for team in teams:
+    transfers_in = transfers.transfer_in_table(team)
+    
+    for transfer in transfers_in[1:]:
+        from_club = transfer[3]
+        source_leagues.append(from_club)
+
+# Count most common source clubs
+common_sources = Counter(source_leagues).most_common(10)
+
+print("Most Common Transfer Sources (2023-2024):\n")
+for club, count in common_sources:
+    print(f"{club}: {count} players")
+```
+
+### Generate Transfer Report
+
+```python
+from premier_league import Transfers
+from datetime import datetime
+
+def generate_transfer_report(league, season, team):
+    """Generate a comprehensive transfer report"""
+    
+    transfers = Transfers(
+        league=league,
+        target_season=season
+    )
+    
+    # Get data
+    transfers_in = transfers.transfer_in_table(team)
+    transfers_out = transfers.transfer_out_table(team)
+    
+    # Generate report
+    report = []
+    report.append(f"{'='*60}")
+    report.append(f"TRANSFER REPORT: {team}")
+    report.append(f"League: {league}")
+    report.append(f"Season: {season}")
+    report.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    report.append(f"{'='*60}\n")
+    
+    # Summary
+    report.append("SUMMARY:")
+    report.append(f"  Total Incoming: {len(transfers_in) - 1}")
+    report.append(f"  Total Outgoing: {len(transfers_out) - 1}")
+    report.append(f"  Net Transfer Activity: {(len(transfers_in) - 1) - (len(transfers_out) - 1)}\n")
+    
+    # Incoming
+    report.append("INCOMING TRANSFERS:")
+    if len(transfers_in) > 1:
+        for transfer in transfers_in[1:]:
+            report.append(f"  [{transfer[0]}] {transfer[1]} ({transfer[2]}) from {transfer[3]}")
+    else:
+        report.append("  None")
+    
+    report.append("\nOUTGOING TRANSFERS:")
+    if len(transfers_out) > 1:
+        for transfer in transfers_out[1:]:
+            report.append(f"  [{transfer[0]}] {transfer[1]} ({transfer[2]}) to {transfer[3]}")
+    else:
+        report.append("  None")
+    
+    report.append(f"\n{'='*60}")
+    
+    # Print and save
+    report_text = "\n".join(report)
+    print(report_text)
+    
+    # Save to file
+    filename = f"{team.replace(' ', '_')}_transfer_report_{season.replace('-', '_')}.txt"
+    with open(filename, 'w') as f:
+        f.write(report_text)
+    
+    print(f"\nReport saved to {filename}")
+
+# Generate report
+generate_transfer_report(
+    league="Serie A",
+    season="2023-2024",
+    team="Napoli"
+)
+```
+
+### Find Inter-League Transfers
+
+```python
+from premier_league import Transfers
+
+# Track transfers between leagues
+pl_transfers = Transfers(league="Premier League", target_season="2023-2024")
+laliga_transfers = Transfers(league="La Liga", target_season="2023-2024")
+
+pl_teams = pl_transfers.get_all_current_teams()
+laliga_teams = laliga_transfers.get_all_current_teams()
+
+print("Transfers from La Liga to Premier League:\n")
+
+for pl_team in pl_teams:
+    transfers_in = pl_transfers.transfer_in_table(pl_team)
+    
+    for transfer in transfers_in[1:]:
+        date, name, position, from_club = transfer
+        # Check if from_club is a La Liga team
+        from_laliga = any(laliga_team.lower() in from_club.lower() for laliga_team in laliga_teams)
+        
+        if from_laliga:
+            print(f"{name} ({position}): {from_club} → {pl_team}")
+```
+
+## Error Handling
+
+```python
+from premier_league import Transfers, TeamNotFoundError
+
+transfers = Transfers(
+    league="Bundesliga",
+    target_season="2023-2024"
+)
+
+# Handle team not found
+try:
+    transfers.print_transfer_table("Invalid Team Name")
+except TeamNotFoundError as e:
+    print(f"Error: {e}")
+    print("\nAvailable teams:")
+    teams = transfers.get_all_current_teams()
+    for team in sorted(teams):
+        print(f"  - {team}")
+
+# Use fuzzy matching
+team_search = "bayern"
+matched_team = transfers.find_team(team_search)
+
+if matched_team:
+    print(f"\nFound: {matched_team}")
+    transfers.print_transfer_table(matched_team)
+else:
+    print(f"No team found matching '{team_search}'")
+```
+
+<Tip>
+Use the `find_team()` method for fuzzy matching when you're unsure of the exact team name. It performs case-insensitive substring matching.
+</Tip>
+
+<Info>
+The module automatically handles multi-word club names and special formatting in transfer data, providing clean and consistent output.
+</Info>
+
+<Warning>
+Some historical seasons may have incomplete transfer data. Always verify data completeness for critical analysis.
+</Warning>
