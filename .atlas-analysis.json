@@ -1,0 +1,111 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "Premier League",
+  "projectDescription": "Python library for accessing and analyzing data for the Top 5 European Football Leagues",
+  "theme": "palm",
+  "primaryColor": "#38003C",
+  "lightColor": "#00FF87",
+  "darkColor": "#38003C",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Core Modules",
+            "pages": [
+              "core/match-statistics",
+              "core/ranking-table",
+              "core/player-leaders",
+              "core/transfers"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/database-management",
+              "guides/data-export",
+              "guides/machine-learning"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Classes",
+            "pages": [
+              "api-reference/match-statistics",
+              "api-reference/ranking-table",
+              "api-reference/player-season-leaders",
+              "api-reference/transfers"
+            ]
+          },
+          {
+            "group": "Data Models",
+            "pages": [
+              "api-reference/models/game",
+              "api-reference/models/game-stats",
+              "api-reference/models/team",
+              "api-reference/models/league"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Flask API",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "flask-api/introduction",
+              "flask-api/quickstart"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              "flask-api/endpoints/players",
+              "flask-api/endpoints/ranking",
+              "flask-api/endpoints/transfers"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "flask-api/deployment/local",
+              "flask-api/deployment/lambda"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Match statistics with detailed player and team data across top European leagues",
+    "Team rankings and standings for historical and current seasons",
+    "Player season leaders for goals and assists with export capabilities",
+    "Transfer data with incoming and outgoing player movements",
+    "Machine learning dataset generation with configurable lag and weighting",
+    "SQLite database with automatic initialization and update methods",
+    "Flask API with rate limiting, caching, and CORS support",
+    "AWS Lambda deployment support via Serverless Framework",
+    "Multiple export formats: CSV, JSON, and PDF"
+  ],
+  "publicApiSurface": [
+    "MatchStatistics",
+    "RankingTable",
+    "PlayerSeasonLeaders",
+    "Transfers",
+    "run_server"
+  ]
+}
