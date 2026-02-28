@@ -219,7 +219,7 @@ PDF exports create beautifully formatted reports with color-coding and professio
 <Warning>
 PDF export requires the optional `reportlab` dependency. Install with:
 ```bash
-pip install premier-league[pdf]
+pip install premier_league[pdf]
 ```
 </Warning>
 
@@ -451,7 +451,7 @@ export_team_report("Liverpool", "2023-2024", "team_reports")
         ranking.get_ranking_pdf("standings", dir="reports")
         print("PDF generated successfully")
     except ImportError:
-        print("reportlab not installed. Use: pip install premier-league[pdf]")
+        print("reportlab not installed. Use: pip install premier_league[pdf]")
     except Exception as e:
         print(f"Export failed: {e}")
     ```
@@ -494,7 +494,7 @@ export_team_report("Liverpool", "2023-2024", "team_reports")
 
 **Solution**:
 ```bash
-pip install premier-league[pdf]
+pip install premier_league[pdf]
 # or
 pip install reportlab
 ```
